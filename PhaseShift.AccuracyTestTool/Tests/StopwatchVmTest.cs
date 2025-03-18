@@ -1,20 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows.Threading;
-
-using PhaseShift.UI.Common;
-using PhaseShift.UI.StopwatchFeature;
+﻿using PhaseShift.UI.StopwatchFeature;
 using PhaseShift.UI.Tests.Mocks;
 
-namespace PhaseShift.Core.AccuracyTestTool.Tests;
+namespace PhaseShift.AccuracyTestTool.Tests;
 
-internal class StopwatchVmTest(AccuracyTest.Options options) : AccuracyTest(options)
+internal class StopwatchVmTest(AccuracyTest.Options options, string? title = null) : AccuracyTest(options, title)
 {
-    public override string Title => typeof(StopwatchVm).ToString();
-
     protected override double MeasureElapsedTime()
     {
         var mockDispatcher = new MockDispatcher();

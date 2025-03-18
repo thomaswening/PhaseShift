@@ -40,6 +40,8 @@ public class AsyncStopwatch(Action<TimeSpan> tickHandler, int intervalMillisecon
             return;
         }
 
+        _cancellationTokenSource?.Dispose();
+        _cancellationTokenSource = null;
         _cancellationTokenSource = new CancellationTokenSource();
 
         IsRunning = true;
@@ -51,9 +53,8 @@ public class AsyncStopwatch(Action<TimeSpan> tickHandler, int intervalMillisecon
     /// </summary>
     public void Stop()
     {
-        CancelAndDisposeToken();
-
         _stopwatch.Stop();
+        CancelAndDisposeToken();
         IsRunning = false;
     }
 

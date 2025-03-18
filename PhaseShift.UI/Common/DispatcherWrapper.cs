@@ -1,4 +1,5 @@
-﻿using System.Windows.Threading;
+﻿using System.Windows;
+using System.Windows.Threading;
 
 namespace PhaseShift.UI.Common;
 
@@ -15,9 +16,11 @@ public interface IDispatcher
 /// <summary>
 /// Implementation of <see cref="IDispatcher"/> as a wrapper around <see cref="Dispatcher"/> for WPF.
 /// </summary>
-public class WpfDispatcher(Dispatcher dispatcher) : IDispatcher
+public class DispatcherWrapper(Dispatcher dispatcher) : IDispatcher
 {
     private readonly Dispatcher _dispatcher = dispatcher;
+
+    public DispatcherWrapper() : this(Application.Current.Dispatcher) { }
 
     /// <inheritdoc cref="Dispatcher.InvokeAsync(Action)"/>
     public Task InvokeAsync(Action action)

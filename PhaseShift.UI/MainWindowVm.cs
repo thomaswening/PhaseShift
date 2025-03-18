@@ -15,7 +15,7 @@ internal partial class MainWindowVm : ObservableObject
     [ObservableProperty]
     private PageViewModel _currentViewModel;
 
-    public MainWindowVm() : this(new WpfDispatcher(Application.Current.Dispatcher)) { }
+    public MainWindowVm() : this(new DispatcherWrapper(Application.Current.Dispatcher)) { }
 
     public MainWindowVm(IDispatcher dispatcher)
     {

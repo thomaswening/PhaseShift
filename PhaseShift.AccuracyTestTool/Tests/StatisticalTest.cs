@@ -1,6 +1,6 @@
 ﻿using System.Collections.Concurrent;
 
-namespace PhaseShift.Core.AccuracyTestTool.Tests;
+namespace PhaseShift.AccuracyTestTool.Tests;
 
 /// <summary>
 /// Represents a statistical test that performs multiple runs of a test candidate function,
@@ -8,16 +8,12 @@ namespace PhaseShift.Core.AccuracyTestTool.Tests;
 /// </summary>
 public class StatisticalTest
 {
-    private readonly ConcurrentBag<double> _samples = [];
-
+    private readonly ParallelOptions _parallelOptions = new() { MaxDegreeOfParallelism = Environment.ProcessorCount };
     private readonly int _sampleCount;
+    private readonly ConcurrentBag<double> _samples = [];
     private readonly Func<double> _testCandidate;
+    private int _generatedSamples;
 
-    private int _totalSamples;
-
-    /// <param name="testCandidate">The function to be tested.</param>
-    /// <param name="numberOfRuns">The number of runs to execute the test.</param>
-    /// <param name="sampleCount">The number of samples to collect per run.</param>
     public StatisticalTest(Func<double> testCandidate, int sampleCount)
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(sampleCount, 1, nameof(sampleCount));
@@ -26,20 +22,55 @@ public class StatisticalTest
         _testCandidate = testCandidate;
     }
 
-    public event EventHandler<int>? SampleGenerated;
+    public event EventHandler? SampleGenerated;
 
+    public int GeneratedSamples => _generatedSamples;
+    public double RelativeSampleStandardDeviation => SampleMean != 0 ? SampleStandardDeviation / SampleMean : double.NaN;
     public double SampleMean => _samples.Average();
     public double SampleStandardDeviation => Math.Sqrt(_samples.Average(x => Math.Pow(x - SampleMean, 2)));
-    public double RelativeSampleStandardDeviation => SampleMean != 0 ? SampleStandardDeviation / SampleMean : double.NaN;
 
-    public void Execute()
+    /// <summary>
+    /// Executes the test candidate function for the specified number of runs.
+    /// </summary>
+    /// <param name="parallelize">
+    /// Whether to execute the test candidate function in parallel.
+    /// Defaults to <see langword="false"/>.
+    /// </param>
+    /// <remarks>
+    /// Cautiously use parallelization with this method 
+    /// as it may affect the test candidate's accuracy under heavy load!
+    /// </remarks>
+    public void Execute(bool parallelize = false)
     {
         Reset();
 
+        if (parallelize)
+        {
+            ExecuteParallel();
+        }
+        else
+        {
+            ExecuteSynchronous();
+        }
+    }
+
+    private void ExecuteParallel()
+    {
+        Parallel.For(0, _sampleCount, _parallelOptions, i =>
+        {
+            _samples.Add(_testCandidate());
+            Interlocked.Increment(ref _generatedSamples);
+            SampleGenerated?.Invoke(this, EventArgs.Empty);
+        });
+    }
+
+    private void ExecuteSynchronous()
+    {
         for (int i = 0; i < _sampleCount; i++)
         {
             _samples.Add(_testCandidate());
-            SampleGenerated?.Invoke(this, ++_totalSamples);
+            _generatedSamples++;
+            SampleGenerated?.Invoke(this, EventArgs.Empty);
         }
     }
 
@@ -49,6 +80,6 @@ public class StatisticalTest
     private void Reset()
     {
         _samples.Clear();
-        _totalSamples = 0;
+        _generatedSamples = 0;
     }
 }

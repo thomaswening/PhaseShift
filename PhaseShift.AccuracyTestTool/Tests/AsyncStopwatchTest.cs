@@ -1,9 +1,9 @@
-﻿namespace PhaseShift.Core.AccuracyTestTool.Tests;
+﻿using PhaseShift.Core;
 
-internal class AsyncStopwatchTest(AccuracyTest.Options options) : AccuracyTest(options)
+namespace PhaseShift.AccuracyTestTool.Tests;
+
+internal class AsyncStopwatchTest(AccuracyTest.Options options, string? title = null) : AccuracyTest(options, title)
 {
-    public override string Title => typeof(AsyncStopwatch).ToString();
-
     protected override double MeasureElapsedTime()
     {
         var asyncStopwatch = new AsyncStopwatch(_ => { }, 10);

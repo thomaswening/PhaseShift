@@ -1,4 +1,4 @@
-﻿namespace PhaseShift.Core.AccuracyTestTool.Tests;
+﻿namespace PhaseShift.AccuracyTestTool.Tests;
 
 internal abstract class AccuracyTest
 {
@@ -9,7 +9,9 @@ internal abstract class AccuracyTest
     private readonly int _sampleCount;
     private readonly StatisticalTest _test;
 
-    protected AccuracyTest(Options options)
+    private bool _busyWriting = false;
+
+    protected AccuracyTest(Options options, string? title = null)
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(options.SampleCount, 1, nameof(options.SampleCount));
         ArgumentOutOfRangeException.ThrowIfLessThan(options.AcceptableDeviationMilliseconds, 1, nameof(options.AcceptableDeviationMilliseconds));
@@ -20,18 +22,28 @@ internal abstract class AccuracyTest
         _expectedElapsedTimeMilliseconds = options.ExpectedElapsedTimeMilliseconds;
 
         _test = new StatisticalTest(MeasureElapsedTime, _sampleCount);
-        _test.SampleGenerated += (_, totalSamples) =>
+        _test.SampleGenerated += (_, _) =>
         {
-            Console.WriteLine($"Generated sample {totalSamples} of {_sampleCount} ({totalSamples / (double)_sampleCount:P2})");
+            if (_busyWriting)
+            {
+                return;
+            }
+
+            _busyWriting = true;
+            Console.SetCursorPosition(0, Console.CursorTop);
+            Console.Write($"Generated samples: {_test.GeneratedSamples} / {_sampleCount} ({_test.GeneratedSamples / (double)_sampleCount:P2})");
+            _busyWriting = false;
         };
+
+        Title = title ?? GetType().Name;
     }
 
     public double DeviationMilliseconds => _test.SampleMean - _expectedElapsedTimeMilliseconds;
     public bool IsSuccess => Math.Abs(DeviationMilliseconds) < _acceptableDeviationMilliseconds;
-    public abstract string Title { get; }
-    public void Execute()
+    public string Title { get; init; }
+    public void Execute(bool parallelize = false)
     {
-        _test.Execute();
+        _test.Execute(parallelize);
         PrintTestSummary();
     }
 

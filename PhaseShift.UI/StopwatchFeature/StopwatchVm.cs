@@ -22,7 +22,7 @@ internal partial class StopwatchVm : PageViewModel
     [NotifyCanExecuteChangedFor(nameof(StartStopwatchCommand))]
     private bool isRunning = false;
 
-    public StopwatchVm() : this(new WpfDispatcher(Application.Current.Dispatcher)) { }
+    public StopwatchVm() : this(new DispatcherWrapper(Application.Current.Dispatcher)) { }
 
     public StopwatchVm(IDispatcher dispatcher)
     {

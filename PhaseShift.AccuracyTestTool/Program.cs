@@ -1,14 +1,12 @@
-﻿
-using PhaseShift.Core.AccuracyTestTool.Tests;
-using PhaseShift.UI.StopwatchFeature;
+﻿using PhaseShift.AccuracyTestTool.Tests;
 
-namespace PhaseShift.Core.AccuracyTestTool;
+namespace PhaseShift.AccuracyTestTool;
 
 internal class Program
 {
     private const int AcceptableDeviationMilliseconds = 10;
     private const int ExpectedElapsedTimeMilliseconds = 10_000;
-    private const int SampleCount = 10;
+    private const int SampleCount = 100;
 
     static void Main(string[] args)
     {
@@ -33,6 +31,9 @@ internal class Program
         }
 
         PrintSummary(tests);
+
+        Console.WriteLine("\nPress any key to exit...");
+        Console.ReadKey();
     }
 
     private static void PrintSummary(List<AccuracyTest> tests)

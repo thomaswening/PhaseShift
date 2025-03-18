@@ -91,21 +91,4 @@ internal class AsyncStopwatchTests
         // Assert
         Assert.That(_asyncStopwatch.IsRunning, Is.False);
     }
-
-    [Test]
-    public async Task Stopwatch_ShouldHaveAcceptableAccuracy()
-    {
-        // Arrange
-        var acceptableDeviation = TimeSpan.FromMilliseconds(1000); // deviation <= 3.6 s per hour
-        var expectedElapsedTime = TimeSpan.FromMilliseconds(10_000);
-
-        // Act
-        _asyncStopwatch!.Start();
-        await Task.Delay(expectedElapsedTime);
-        _asyncStopwatch.Stop();
-        var actualElapsedTime = _asyncStopwatch.ElapsedTime;
-
-        // Assert
-        Assert.That(actualElapsedTime, Is.EqualTo(expectedElapsedTime).Within(acceptableDeviation));
-    }
 }

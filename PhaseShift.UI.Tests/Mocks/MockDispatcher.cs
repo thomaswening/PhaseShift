@@ -1,7 +1,7 @@
 ﻿using PhaseShift.UI.Common;
 
 namespace PhaseShift.UI.Tests.Mocks;
-internal class MockDispatcher : IDispatcher
+public class MockDispatcher : IDispatcher
 {
     public void Invoke(Action action)
     {

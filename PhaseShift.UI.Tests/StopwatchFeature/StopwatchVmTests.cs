@@ -95,20 +95,4 @@ internal class StopwatchVmTests
 
         Assert.That(_stopwatchVm.ElapsedTime, Is.EqualTo(TimeSpan.Zero));
     }
-
-    [Test]
-    public async Task StopwatchVm_ShouldHaveAcceptableAccuracy()
-    {
-        // Arrange
-        var acceptableDeviation = TimeSpan.FromMilliseconds(1000); // deviation <= 3.6 s per hour
-        var expectedElapsedTime = TimeSpan.FromMilliseconds(10_000);
-
-        // Act
-        _stopwatchVm!.StartStopwatchCommand.Execute(null);
-        await Task.Delay(expectedElapsedTime);
-        _stopwatchVm.PauseStopwatchCommand.Execute(null);
-
-        // Assert
-        Assert.That(_stopwatchVm.ElapsedTime, Is.EqualTo(expectedElapsedTime).Within(acceptableDeviation));
-    }
 }

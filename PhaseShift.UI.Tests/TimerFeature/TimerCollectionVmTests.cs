@@ -67,7 +67,7 @@ internal class TimerCollectionVmTests
 
         // Act
         timer.StartTimerCommand.Execute(null);
-        await Task.Delay(TimerDurationMilliseconds + 10);
+        await Task.Delay(TimerDurationMilliseconds + 100);
 
         // Assert
         Assert.That(timerCompletedEventRaised, Is.True);

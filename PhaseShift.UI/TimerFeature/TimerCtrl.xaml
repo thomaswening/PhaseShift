@@ -1,0 +1,105 @@
+﻿<UserControl x:Class="PhaseShift.UI.TimerFeature.TimerCtrl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:PhaseShift.UI.TimerFeature"
+             xmlns:materialIcons="clr-namespace:Material.Icons.WPF;assembly=Material.Icons.WPF"
+             mc:Ignorable="d"
+             d:DesignHeight="450"
+             d:DesignWidth="800"
+             d:Background="White"
+             d:DataContext="{d:DesignInstance local:TimerVm, IsDesignTimeCreatable=True}">
+
+    <UserControl.Resources>
+
+        <Style TargetType="{x:Type Button}"
+               BasedOn="{StaticResource TimerButtonSecondaryBase}">
+        </Style>
+    </UserControl.Resources>
+
+    <StackPanel HorizontalAlignment="Center"
+                VerticalAlignment="Center">
+
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="15" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="15" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <!--Title-->
+            <TextBox Grid.Row="0"
+                     Grid.Column="0"
+                     Grid.ColumnSpan="4"
+                     FontSize="16"
+                     Margin="10 15 0 10"
+                     HorizontalContentAlignment="Left"
+                     Style="{StaticResource MaterialDesignComboBoxEditableTextBox}"
+                     Text="{Binding TimerTitle, Mode=TwoWay}" />
+
+            <!--Play / Pause / Reset-->
+            <Button Grid.Row="1"
+                    Grid.Column="0"
+                    Style="{StaticResource StartTimerSecondaryButton}"
+                    Command="{Binding StartTimerCommand}"
+                    ToolTip="Start Timer">
+
+                <materialIcons:MaterialIcon Kind="Play" />
+            </Button>
+
+            <Button Grid.Row="1"
+                    Grid.Column="0"
+                    Style="{StaticResource StopTimerSecondaryButton}"
+                    Command="{Binding StopTimerCommand}"
+                    ToolTip="Stop Timer">
+
+                <materialIcons:MaterialIcon Kind="Pause" />
+            </Button>
+
+            <Button Grid.Row="1"
+                    Grid.Column="1"
+                    Command="{Binding ResetTimerCommand}"
+                    ToolTip="Reset Timer">
+
+                <materialIcons:MaterialIcon Kind="Restore" />
+            </Button>
+
+            <!--Remaining Time-->
+            <TextBlock Grid.Row="1"
+                       Grid.Column="3"
+                       FontSize="48"
+                       Text="{Binding RemainingTime, Converter={StaticResource TimeSpanConverter}}" />
+
+            <!--Delete-->
+            <Button Grid.Row="1"
+                    Grid.Column="5"
+                    Command="{Binding DeleteTimerCommand}"
+                    ToolTip="Delete Timer">
+
+                <materialIcons:MaterialIcon Kind="Close" />
+            </Button>
+
+            <!--Progress Bar-->
+            <ProgressBar Grid.Row="2"
+                         Grid.Column="3"
+                         Margin="0 10 0 0"
+                         Value="{Binding Progress}"
+                         Minimum="0"
+                         Maximum="1"
+                         Height="3"
+                         HorizontalAlignment="Stretch"
+                         VerticalAlignment="Center"
+                         ToolTip="Timer Progress" />
+        </Grid>
+    </StackPanel>
+</UserControl>

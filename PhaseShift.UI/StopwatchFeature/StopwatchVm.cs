@@ -1,6 +1,4 @@
-﻿using System.Windows;
-
-using CommunityToolkit.Mvvm.ComponentModel;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
 using PhaseShift.Core;
@@ -22,7 +20,7 @@ internal partial class StopwatchVm : PageViewModel
     [NotifyCanExecuteChangedFor(nameof(StartStopwatchCommand))]
     private bool isRunning = false;
 
-    public StopwatchVm() : this(new DispatcherWrapper(Application.Current.Dispatcher)) { }
+    public StopwatchVm() : this(new DispatcherWrapper(System.Windows.Application.Current.Dispatcher)) { }
 
     public StopwatchVm(IDispatcher dispatcher)
     {

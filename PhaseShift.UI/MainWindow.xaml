@@ -5,6 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:PhaseShift.UI"
         xmlns:stopwatch="clr-namespace:PhaseShift.UI.StopwatchFeature"
+        xmlns:timer="clr-namespace:PhaseShift.UI.TimerFeature"
         xmlns:common="clr-namespace:PhaseShift.UI.Common"
         xmlns:featureIcons="clr-namespace:PhaseShift.UI.Common.Icons"
         xmlns:materialIcons="clr-namespace:Material.Icons.WPF;assembly=Material.Icons.WPF"
@@ -14,7 +15,8 @@
         Height="500"
         MinWidth="500"
         Width="500"
-        Style="{StaticResource MaterialDesignWindow}">
+        Style="{StaticResource MaterialDesignWindow}"
+        Loaded="Window_Loaded">
 
     <Window.DataContext>
         <local:MainWindowVm />
@@ -28,6 +30,10 @@
                     Value="0 15" />
         </Style>
 
+        <DataTemplate DataType="{x:Type timer:TimerCollectionVm}">
+            <timer:TimerCollectionCtrl />
+        </DataTemplate>
+        
         <DataTemplate DataType="{x:Type stopwatch:StopwatchVm}">
             <stopwatch:StopwatchCtrl />
         </DataTemplate>
@@ -55,6 +61,12 @@
             <StackPanel Orientation="Vertical"
                         HorizontalAlignment="Center">
 
+                <Button Command="{Binding ShowTimersCommand}"
+                        ToolTip="Timers">
+
+                    <featureIcons:TimerIcon />
+                </Button>
+                
                 <Button Command="{Binding ShowStopwatchCommand}"
                         ToolTip="Stopwatch">
 

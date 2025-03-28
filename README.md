@@ -16,11 +16,11 @@ It’s a surprisingly effective way to avoid burnout, reduce procrastination, an
 ## Features
 
 - ✅ **Stopwatch Mode** – Start, stop, and reset your work sessions with ease.
+- ✅ **Custom Timers** – Set countdowns for arbitrary tasks and activities.  
 
 ## Planned Features
 
-- 🍅 **Pomodoro Timer** – Work/break intervals based on the classic Pomodoro technique.  
-- ⏲ **Custom Timers** – Set countdowns for arbitrary tasks and activities.  
+- 🍅 **Pomodoro Timer** – Work/break intervals based on the classic Pomodoro technique.
 - ⚙️ **User Settings & Persistence** – Configure durations, themes, and preferences.  
 - 🔁 **Stopwatch Rounds** – Track multiple rounds/splits within a single stopwatch session.
 

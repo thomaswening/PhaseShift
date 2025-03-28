@@ -21,12 +21,14 @@ internal class Program
         {
             new AsyncStopwatchTest(options),
             new StopwatchVmTest(options),
+            new AsyncTimerTest(options),
+            new TimerVmTest(options),
         };
 
         foreach (var test in tests)
         {
             Console.WriteLine($"Starting {test.Title} accuracy test...\n");
-            test.Execute();
+            test.Execute(parallelize: false);
             Console.WriteLine();
         }
 

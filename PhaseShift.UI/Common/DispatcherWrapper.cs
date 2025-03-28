@@ -1,5 +1,4 @@
-﻿using System.Windows;
-using System.Windows.Threading;
+﻿using System.Windows.Threading;
 
 namespace PhaseShift.UI.Common;
 
@@ -20,7 +19,7 @@ public class DispatcherWrapper(Dispatcher dispatcher) : IDispatcher
 {
     private readonly Dispatcher _dispatcher = dispatcher;
 
-    public DispatcherWrapper() : this(Application.Current.Dispatcher) { }
+    public DispatcherWrapper() : this(System.Windows.Application.Current.Dispatcher) { }
 
     /// <inheritdoc cref="Dispatcher.InvokeAsync(Action)"/>
     public Task InvokeAsync(Action action)

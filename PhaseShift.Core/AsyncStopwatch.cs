@@ -12,7 +12,7 @@ public class AsyncStopwatch(Action<TimeSpan> tickHandler, int intervalMillisecon
     private readonly Action<TimeSpan> _tickHandler = tickHandler;
     private readonly int _intervalMilliseconds = intervalMilliseconds;
     private readonly Stopwatch _stopwatch = new();
-    private CancellationTokenSource? _cancellationTokenSource;
+    private CancellationTokenSource _cancellationTokenSource = new();
 
     public TimeSpan ElapsedTime => _stopwatch.Elapsed;
     public bool IsRunning { get; private set; }
@@ -22,9 +22,8 @@ public class AsyncStopwatch(Action<TimeSpan> tickHandler, int intervalMillisecon
     /// </summary>
     public void Reset()
     {
-        CancelAndDisposeToken();
-
         _stopwatch.Reset();
+        _cancellationTokenSource.Cancel();
         _tickHandler(_stopwatch.Elapsed);
 
         IsRunning = false;
@@ -40,12 +39,21 @@ public class AsyncStopwatch(Action<TimeSpan> tickHandler, int intervalMillisecon
             return;
         }
 
-        _cancellationTokenSource?.Dispose();
-        _cancellationTokenSource = null;
-        _cancellationTokenSource = new CancellationTokenSource();
-
         IsRunning = true;
-        Task.Run(() => StartAsync(_cancellationTokenSource.Token)).ConfigureAwait(false);
+        try
+        {
+            Task.Run(() => StartAsync(_cancellationTokenSource.Token), _cancellationTokenSource.Token).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            ResetCancellationToken();
+        }
+    }
+
+    private void ResetCancellationToken()
+    {
+        _cancellationTokenSource?.Dispose();
+        _cancellationTokenSource = new CancellationTokenSource();
     }
 
     /// <summary>
@@ -54,15 +62,8 @@ public class AsyncStopwatch(Action<TimeSpan> tickHandler, int intervalMillisecon
     public void Stop()
     {
         _stopwatch.Stop();
-        CancelAndDisposeToken();
+        _cancellationTokenSource.Cancel();
         IsRunning = false;
-    }
-
-    private void CancelAndDisposeToken()
-    {
-        _cancellationTokenSource?.Cancel();
-        _cancellationTokenSource?.Dispose();
-        _cancellationTokenSource = null;
     }
 
     private async Task StartAsync(CancellationToken cancelToken)
@@ -85,5 +86,7 @@ public class AsyncStopwatch(Action<TimeSpan> tickHandler, int intervalMillisecon
                 // Stopwatch was stopped, do nothing
             }
         }
+
+        ResetCancellationToken();
     }
 }

@@ -9,7 +9,7 @@ public class AsyncTimer
     private readonly Action _timerCompletedCallback;
     private readonly int _intervalMilliseconds;
     private readonly AsyncStopwatch _stopwatch;
-    private CancellationTokenSource? _cancellationTokenSource;
+    private CancellationTokenSource _cancellationTokenSource = new();
     private TimeSpan _duration;
 
     public AsyncTimer(Action timerCompletedCallback, Action<TimeSpan> tickCallback, TimeSpan duration, int intervalMilliseconds = 10)
@@ -36,7 +36,7 @@ public class AsyncTimer
     public void Reset()
     {
         _stopwatch.Reset();
-        CancelAndDisposeToken();
+        _cancellationTokenSource.Cancel();
     }
 
     public void Start()
@@ -46,24 +46,20 @@ public class AsyncTimer
             return;
         }
 
-        _cancellationTokenSource?.Dispose();
-        _cancellationTokenSource = null;
-        _cancellationTokenSource = new CancellationTokenSource();
-
-        Task.Run(() => StartAsync(_cancellationTokenSource.Token));
+        try
+        {
+            Task.Run(() => StartAsync(_cancellationTokenSource.Token), _cancellationTokenSource.Token);
+        }
+        catch (OperationCanceledException)
+        {
+            ResetCancellationToken();
+        }
     }
 
     public void Stop()
     {
         _stopwatch.Stop();
-        CancelAndDisposeToken();
-    }
-
-    private void CancelAndDisposeToken()
-    {
-        _cancellationTokenSource?.Cancel();
-        _cancellationTokenSource?.Dispose();
-        _cancellationTokenSource = null;
+        _cancellationTokenSource.Cancel();
     }
 
     private TimeSpan GetRemainingTime()
@@ -104,11 +100,18 @@ public class AsyncTimer
 
         if (cancelToken.IsCancellationRequested)
         {
+            ResetCancellationToken();
             return;
         }
 
         _timerCompletedCallback();
         _stopwatch.Reset();
+    }
+
+    private void ResetCancellationToken()
+    {
+        _cancellationTokenSource.Dispose();
+        _cancellationTokenSource = new CancellationTokenSource();
     }
 }
 

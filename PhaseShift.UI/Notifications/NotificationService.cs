@@ -1,9 +1,6 @@
-﻿using System.Diagnostics;
-using System.Media;
+﻿using System.Media;
 using System.Runtime.InteropServices;
 using System.Windows;
-
-using MaterialDesignThemes.Wpf;
 
 using PhaseShift.UI.Common;
 using PhaseShift.UI.TimerFeature;

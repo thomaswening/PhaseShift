@@ -70,7 +70,7 @@ internal class PomodoroTimerVmTests
     }
 
     [Test]
-    public async Task PhaseCompleted_IsInvoked_WhenTimerPassesToNextPhaseOrIsSkipped()
+    public async Task PhaseCompleted_IsInvoked_WhenTimerPassesToNextPhase()
     {
         // Arrange
         bool phaseCompletedInvoked = false;
@@ -92,12 +92,22 @@ internal class PomodoroTimerVmTests
             Assert.That(phaseCompletedInvoked, Is.True);
             Assert.That(phaseWasSkipped, Is.False);
         });
+    }
 
-        // Reset for skip test
-        phaseCompletedInvoked = false;
-        phaseWasSkipped = false;
+    [Test]
+    public async Task PhaseCompleted_IsInvoked_WhenPhaseIsSkipped()
+    {
+        // Arrange
+        bool phaseCompletedInvoked = false;
+        bool phaseWasSkipped = false;
 
-        // Act  
+        _pomodoroTimerVm!.ActiveTimerCompleted += (_, args) =>
+        {
+            phaseCompletedInvoked = true;
+            phaseWasSkipped = args.WasSkipped;
+        };
+
+        // Act
         _pomodoroTimerVm.StartTimerCommand.Execute(null);
         await Task.Delay(TestDelayMilliseconds);
         _pomodoroTimerVm.SkipToNextPhaseCommand.Execute(null);
@@ -190,7 +200,7 @@ internal class PomodoroTimerVmTests
 
         // Act
         _pomodoroTimerVm.StartTimerCommand.Execute(null);
-        await Task.Delay(_pomodoroTimerVm.TotalTimerDuration.Milliseconds + 2000);
+        await Task.Delay((int)_pomodoroTimerVm.TotalTimerDuration.TotalMilliseconds + TestDelayMilliseconds);
 
         // Assert
         Assert.That(sessionCompletedInvoked, Is.True);
@@ -205,7 +215,7 @@ internal class PomodoroTimerVmTests
 
         // Act
         _pomodoroTimerVm.StartTimerCommand.Execute(null);
-        await Task.Delay(_pomodoroTimerVm.TotalTimerDuration.Milliseconds - WorkDurationSeconds * 1000 + 2000);
+        await Task.Delay((int)_pomodoroTimerVm.TotalTimerDuration.TotalMilliseconds + TestDelayMilliseconds - WorkDurationSeconds * 1000 + TestDelayMilliseconds);
         _pomodoroTimerVm.SkipToNextPhaseCommand.Execute(null);
 
         // Assert
@@ -291,7 +301,7 @@ internal class PomodoroTimerVmTests
     {
         // Act
         _pomodoroTimerVm!.StartTimerCommand.Execute(null);
-        await Task.Delay(_pomodoroTimerVm.TotalTimerDuration.Milliseconds + 3100);
+        await Task.Delay((int)_pomodoroTimerVm.TotalTimerDuration.TotalMilliseconds + TestDelayMilliseconds);
 
         // Assert
         Assert.That(_pomodoroTimerVm.WorkUnitsCompleted, Is.EqualTo(TotalWorkUnits));

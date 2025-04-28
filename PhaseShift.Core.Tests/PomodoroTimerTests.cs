@@ -197,7 +197,7 @@ internal class PomodoroTimerTests : BaseTestHelper
 
         // Act
         _pomodoroTimer!.StartActiveTimer();
-        await Task.Delay(GetTotalTimerDurationSeconds() * 1000 + TestDelayMilliseconds);
+        await Task.Delay((int)_pomodoroTimer.Info.TotalTimerDuration.TotalMilliseconds + TestDelayMilliseconds);
 
         // Assert
         Assert.That(sessionCompletedInvoked, Is.True);
@@ -207,7 +207,7 @@ internal class PomodoroTimerTests : BaseTestHelper
 
         // Act
         _pomodoroTimer!.StartActiveTimer();
-        await Task.Delay((GetTotalTimerDurationSeconds() - WorkDurationSeconds) * 1000 + TestDelayMilliseconds);
+        await Task.Delay((int)_pomodoroTimer.Info.TotalTimerDuration.TotalMilliseconds + TestDelayMilliseconds);
         _pomodoroTimer!.SkipActiveTimer();
 
         // Assert
@@ -293,7 +293,7 @@ internal class PomodoroTimerTests : BaseTestHelper
     {
         // Act
         _pomodoroTimer!.StartActiveTimer();
-        await Task.Delay(GetTotalTimerDurationSeconds() * 1000 + TestDelayMilliseconds);
+        await Task.Delay((int)_pomodoroTimer.Info.TotalTimerDuration.TotalMilliseconds + TestDelayMilliseconds);
         // Assert
         Assert.That(_pomodoroTimer.Info.WorkUnitsCompleted, Is.EqualTo(TotalWorkUnits));
     }
@@ -396,5 +396,39 @@ internal class PomodoroTimerTests : BaseTestHelper
             Assert.That(info.TotalRemainingTime, Is.EqualTo(info.TotalTimerDuration));
             Assert.That(info.WorkUnitsCompleted, Is.EqualTo(0));
         });
+    }
+
+    [Test]
+    [TestCase(1, 2, 1, 1, 1, 2)] // 1 work unit, 2 second work duration => 2 s total duration, irresp of other params
+    [TestCase(2, 1, 1, 1, 1, 3)] // 2 work units, 1 second work duration, 1 second break duration => 3 s total duration
+    [TestCase(2, 1, 1, 2, 1, 4)] // 2 work units, 1 second work duration, 2 second long break directly after work => 4 s total duration
+    [TestCase(3, 1, 1, 2, 2, 6)] // 3 work units, 1 second work duration, 1 second short break, 2 second long break after every 2 work units => 6 s total duration
+    [TestCase(6, 5, 2, 3, 3, 41)] // 6 work units, 5 second work duration, 2 second short break, 3 second long break after every 3 work units => 41 s total duration
+    [TestCase(6, 5, 2, 3, 2, 42)] // 6 work units, 5 second work duration, 2 second short break, 3 second long break after every 2 work units => 42 s total duration
+    public void TotalTimerDuration_CalculatesCorrectly_WithDifferentSettings(
+        int totalWorkUnits,
+        int workDurationSeconds,
+        int shortBreakDurationSeconds,
+        int longBreakDurationSeconds,
+        int workUnitsBeforeLongBreak,
+        int expectedTotalDurationSeconds)
+    {
+        // Arrange
+        var settings = new PomodoroSettings
+        {
+            TotalWorkUnits = totalWorkUnits,
+            WorkDurationSeconds = workDurationSeconds,
+            ShortBreakDurationSeconds = shortBreakDurationSeconds,
+            LongBreakDurationSeconds = longBreakDurationSeconds,
+            WorkUnitsBeforeLongBreak = workUnitsBeforeLongBreak
+        };
+
+        var pomodoroTimer = new PomodoroTimer(Substitute.For<Action>(), settings);
+
+        // Act
+        var totalDuration = pomodoroTimer.Info.TotalTimerDuration;
+
+        // Assert
+        Assert.That(totalDuration, Is.EqualTo(TimeSpan.FromSeconds(expectedTotalDurationSeconds)));
     }
 }

@@ -179,7 +179,8 @@ public class PomodoroSessionManager
 
         _timers[phase].Duration = duration;
 
-        if (CurrentPhase == phase && duration >= ActiveTimer.ElapsedTime)
+        // Advance to the next phase if the current phase's duration is changed to less than the already elapsed time.
+        if (CurrentPhase == phase && duration <= ActiveTimer.ElapsedTime)
         {
             StopActiveTimer();
             OnActiveTimerCompleted();

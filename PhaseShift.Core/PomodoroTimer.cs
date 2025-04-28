@@ -96,13 +96,22 @@ public class PomodoroTimer
         private TimeSpan GetTotalTimerDuration()
         {
             // Calculate the remaining time from the projected time with the current settings
-            // and add the time from the completed phases
+            // and add the time from the completed phases.
+
+            // Necessary to use the remaining work units and elapsed time in completed phases
+            // because the settings might have been changed during the session.
 
             var remainingWorkUnits = TotalWorkUnits - WorkUnitsCompleted;
             var remainingWorkUnitDuration = TimeSpan.FromSeconds(remainingWorkUnits * Settings.WorkDurationSeconds);
             var remainingBreaks = remainingWorkUnits - 1;
             var passedLongBreaks = WorkUnitsCompleted / WorkUnitsBeforeLongBreak;
+
             var longBreaks = TotalWorkUnits / WorkUnitsBeforeLongBreak;
+            if (TotalWorkUnits % WorkUnitsBeforeLongBreak == 0) 
+            {
+                longBreaks--; // Cannot have a break at the end of the session
+            }
+
             var remainingLongBreaks = longBreaks - passedLongBreaks;
             var remainingShortBreaks = remainingBreaks - remainingLongBreaks;
 

@@ -6,6 +6,7 @@
         xmlns:local="clr-namespace:PhaseShift.UI"
         xmlns:stopwatch="clr-namespace:PhaseShift.UI.StopwatchFeature"
         xmlns:timer="clr-namespace:PhaseShift.UI.TimerFeature"
+        xmlns:pomodoro="clr-namespace:PhaseShift.UI.PomodoroFeature"
         xmlns:common="clr-namespace:PhaseShift.UI.Common"
         xmlns:featureIcons="clr-namespace:PhaseShift.UI.Common.Icons"
         xmlns:materialIcons="clr-namespace:Material.Icons.WPF;assembly=Material.Icons.WPF"
@@ -37,6 +38,10 @@
         <DataTemplate DataType="{x:Type stopwatch:StopwatchVm}">
             <stopwatch:StopwatchCtrl />
         </DataTemplate>
+        
+        <DataTemplate DataType="{x:Type pomodoro:PomodoroNavigationVm}">
+            <pomodoro:PomodoroNavigationCtrl />
+        </DataTemplate>
     </Window.Resources>
 
     <Grid>
@@ -61,6 +66,12 @@
             <StackPanel Orientation="Vertical"
                         HorizontalAlignment="Center">
 
+                <Button ToolTip="Pomodoro Timer"
+                        Command="{Binding ShowPomodoroTimerCommand}">
+
+                    <featureIcons:PomodoroIcon />
+                </Button>
+                
                 <Button Command="{Binding ShowTimersCommand}"
                         ToolTip="Timers">
 

@@ -1,7 +1,6 @@
 using NSubstitute;
+
 using NUnit.Framework;
-using System;
-using System.Threading.Tasks;
 
 namespace PhaseShift.Core.Tests;
 

@@ -1,6 +1,3 @@
-using NUnit.Framework;
-using System;
-
 namespace PhaseShift.Core.Tests;
 
 internal abstract class BaseTestHelper

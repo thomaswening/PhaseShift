@@ -1,6 +1,4 @@
-﻿using System.Windows.Threading;
-
-using CommunityToolkit.Mvvm.ComponentModel;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
 using PhaseShift.Core;
@@ -49,6 +47,9 @@ internal partial class PomodoroTimerVm : PageViewModel
 
     [ObservableProperty]
     private TimeSpan _totalRemainingTime;
+
+
+    public PomodoroTimerVm() : this(null, null) { }
 
     public PomodoroTimerVm(PomodoroSettings? settings = null, IDispatcher? dispatcher = null)
     {

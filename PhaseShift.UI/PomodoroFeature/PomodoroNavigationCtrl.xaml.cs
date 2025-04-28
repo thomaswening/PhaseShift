@@ -1,6 +1,4 @@
-﻿using System.Windows.Controls;
-
-namespace PhaseShift.UI.PomodoroFeature;
+﻿namespace PhaseShift.UI.PomodoroFeature;
 /// <summary>
 /// Interaction logic for PomodoroNavigationCtrl.xaml
 /// </summary>

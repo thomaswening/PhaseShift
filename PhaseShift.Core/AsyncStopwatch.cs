@@ -75,7 +75,7 @@ public class AsyncStopwatch(Action<TimeSpan> tickHandler, int intervalMillisecon
             // Don't await the task to prevent the stopwatch from being stopped
             // granted, the handler should execute faster than the tick interval!
 
-            Task.Run(() => _tickHandler(_stopwatch.Elapsed), CancellationToken.None).ConfigureAwait(false);
+            Task.Run(InvokeTickHandler, CancellationToken.None).ConfigureAwait(false);
 
             try
             {
@@ -88,5 +88,17 @@ public class AsyncStopwatch(Action<TimeSpan> tickHandler, int intervalMillisecon
         }
 
         ResetCancellationToken();
+    }
+
+    private void InvokeTickHandler()
+    {
+        try
+        {
+            _tickHandler(_stopwatch.Elapsed);
+        }
+        catch (OperationCanceledException)
+        {
+            // do nothing, user cancelled
+        }
     }
 }

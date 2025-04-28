@@ -91,8 +91,8 @@
             </local:PomodoroWorkUnitsCtrl>
 
             <TextBlock Margin="0 0 0 10"
-                       Text="{Binding TotalElapsedTime, Converter={StaticResource TimeSpanConverter}}"
-                       ToolTip="Total Elapsed Time" />
+                       Text="{Binding ElapsedTime, Converter={StaticResource TimeSpanConverter}}"
+                       ToolTip="Elapsed Time in Current Phase" />
 
             <StackPanel Orientation="Horizontal"
                         HorizontalAlignment="Center"

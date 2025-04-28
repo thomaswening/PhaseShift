@@ -23,7 +23,7 @@ internal partial class MainWindowVm : ObservableObject
         var timerCollectionVm = new TimerCollectionVm(dispatcher);
         timerCollectionVm.TimerCompleted += (s, e) => TimerCompleted?.Invoke(s, e);
 
-        var pomodoroNavigationVm = new PomodoroNavigationVm();
+        var pomodoroNavigationVm = new PomodoroNavigationVm(dispatcher);
         pomodoroNavigationVm.TimerCompleted += (s, e) => TimerCompleted?.Invoke(s, e);
 
         _viewModels = new Dictionary<Type, PageViewModel>
@@ -39,13 +39,13 @@ internal partial class MainWindowVm : ObservableObject
     public event EventHandler<TimerCompletedEventArgs>? TimerCompleted;
 
     [RelayCommand]
-    public void ShowStopwatch()
+    private void ShowStopwatch()
     {
         CurrentViewModel = _viewModels[typeof(StopwatchVm)];
     }
 
     [RelayCommand]
-    public void ShowTimers()
+    private void ShowTimers()
     {
         CurrentViewModel = _viewModels[typeof(TimerCollectionVm)];
     }

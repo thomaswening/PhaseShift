@@ -13,6 +13,8 @@
 
     <UserControl.Resources>
 
+        <local:SecondsToMinutesConverter x:Key="SecondsToMinutes" />
+
         <Style TargetType="TextBlock"
                BasedOn="{StaticResource MaterialDesignCaptionTextBlock}">
 
@@ -88,14 +90,15 @@
         <Slider Grid.Row="0"
                 Grid.Column="1"
                 Minimum="1"
-                Maximum="180"
-                TickFrequency="5"
-                Value="{Binding WorkDurationSeconds, UpdateSourceTrigger=PropertyChanged}" />
+                Maximum="60"
+                IsSnapToTickEnabled="True"
+                Ticks="5,10,15,20,25,30,35,40,45,50,55,60"
+                Value="{Binding WorkDurationSeconds, Converter={StaticResource SecondsToMinutes}, UpdateSourceTrigger=PropertyChanged}" />
 
         <TextBlock Grid.Row="0"
                    Grid.Column="2"
                    Style="{StaticResource ValueText}"
-                   Text="{Binding WorkDurationSeconds, UpdateSourceTrigger=PropertyChanged}" />
+                   Text="{Binding WorkDurationSeconds, Converter={StaticResource SecondsToMinutes}, UpdateSourceTrigger=PropertyChanged}" />
 
         <!--Short Break Duration-->
         <TextBlock Grid.Row="1"
@@ -105,13 +108,13 @@
         <Slider Grid.Row="1"
                 Grid.Column="1"
                 Minimum="1"
-                Maximum="{Binding LongBreakDurationSeconds}"
-                Value="{Binding ShortBreakDurationSeconds, UpdateSourceTrigger=PropertyChanged}" />
+                Maximum="{Binding LongBreakDurationSeconds, Converter={StaticResource SecondsToMinutes}}"
+                Value="{Binding ShortBreakDurationSeconds, Converter={StaticResource SecondsToMinutes}, UpdateSourceTrigger=PropertyChanged}" />
 
         <TextBlock Grid.Row="1"
                    Grid.Column="2"
                    Style="{StaticResource ValueText}"
-                   Text="{Binding ShortBreakDurationSeconds, UpdateSourceTrigger=PropertyChanged}" />
+                   Text="{Binding ShortBreakDurationSeconds, Converter={StaticResource SecondsToMinutes}, UpdateSourceTrigger=PropertyChanged}" />
 
         <!--Long Break Duration-->
         <TextBlock Grid.Row="2"
@@ -120,14 +123,14 @@
 
         <Slider Grid.Row="2"
                 Grid.Column="1"
-                Minimum="{Binding ShortBreakDurationSeconds}"
+                Minimum="{Binding ShortBreakDurationSeconds, Converter={StaticResource SecondsToMinutes}}"
                 Maximum="30"
-                Value="{Binding LongBreakDurationSeconds, UpdateSourceTrigger=PropertyChanged}" />
+                Value="{Binding LongBreakDurationSeconds, Converter={StaticResource SecondsToMinutes}, UpdateSourceTrigger=PropertyChanged}" />
 
         <TextBlock Grid.Row="2"
                    Grid.Column="2"
                    Style="{StaticResource ValueText}"
-                   Text="{Binding LongBreakDurationSeconds, UpdateSourceTrigger=PropertyChanged}" />
+                   Text="{Binding LongBreakDurationSeconds, Converter={StaticResource SecondsToMinutes}, UpdateSourceTrigger=PropertyChanged}" />
 
         <!--Total Work Units-->
         <TextBlock Grid.Row="3"
@@ -137,7 +140,7 @@
         <Slider Grid.Row="3"
                 Grid.Column="1"
                 Minimum="1"
-                Maximum="48"
+                Maximum="24"
                 Value="{Binding TotalWorkUnits, UpdateSourceTrigger=PropertyChanged}" />
 
         <TextBlock Grid.Row="3"

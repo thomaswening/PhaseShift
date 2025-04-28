@@ -29,7 +29,7 @@ internal class MainWindowVmTests
     public void ShowStopwatch_ShouldSetCurrentViewModelToStopwatchVm()
     {
         // Act
-        _mainWindowVm!.ShowStopwatch();
+        _mainWindowVm!.ShowStopwatchCommand.Execute(null);
 
         // Assert
         Assert.That(_mainWindowVm!.CurrentViewModel.GetType(), Is.EqualTo(typeof(StopwatchVm)));
@@ -39,10 +39,10 @@ internal class MainWindowVmTests
     public void ShowTimers_ShouldSetCurrentViewModelToTimerCollectionVm()
     {
         // Arrange
-        _mainWindowVm!.ShowStopwatch();
+        _mainWindowVm!.ShowStopwatchCommand.Execute(null);
 
         // Act
-        _mainWindowVm!.ShowTimers();
+        _mainWindowVm!.ShowTimersCommand.Execute(null);
 
         // Assert
         Assert.That(_mainWindowVm!.CurrentViewModel.GetType(), Is.EqualTo(typeof(TimerCollectionVm)));

@@ -11,7 +11,46 @@
              d:DesignWidth="800"
              d:Background="Transparent">
 
-    <Viewbox>
-        <TextBlock Text="P" />
+    <!--Just copied in from PhaseShift/assets/-->
+    <Viewbox xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             Stretch="Uniform"
+             Name="pomodoro_icon_xaml">
+        <Canvas UseLayoutRounding="False"
+                Width="512.0"
+                Height="512.0">
+            <Canvas.Clip>
+                <RectangleGeometry Rect="0.0,0.0,512.0,512.0" />
+            </Canvas.Clip>
+            <Canvas UseLayoutRounding="False"
+                    RenderTransform="11.25972,0.0,0.0,11.05641,-16.161483,-11.590983">
+                <Path Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                      StrokeThickness="4.0"
+                      StrokeDashCap="Flat">
+                    <Path.Data>
+                        <PathGeometry Figures="M 42.9835 21.1523 C 46.0788 30.8183 39.7212 43.9306 24 44.1032 C 8.27882 44.2758 2.79715 31.4679 5.10283 21.5838 C 8.29573 7.89615 21.8133 13.6061 24.4315 13.648 c 2.61818 0.042 14.1413 -6.26967 18.552 7.50423 z"
+                                      FillRule="Nonzero" />
+                    </Path.Data>
+                </Path>
+                <Path Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                      StrokeThickness="1.82774"
+                      StrokeDashCap="Flat">
+                    <Path.Data>
+                        <PathGeometry Figures="m 19.3739 17.0417 c 0 0 -4.3853 1.86882 -5.05641 9.38149 c -0.810497 9.07303 4.66764 14.4151 4.66764 14.4151"
+                                      FillRule="Nonzero" />
+                    </Path.Data>
+                </Path>
+                <Path Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                      StrokeThickness="2.0"
+                      StrokeDashCap="Flat">
+                    <Path.Data>
+                        <PathGeometry Figures="m 24.2894 12.0947 c 4.10524 0.02424 5.68533 -6.73098 5.68533 -6.73098 l -4.40102 3.02031 l -1.28431 -3.27919 l -1.21823 3.27919 l -4.91879 -1.72589 c 0 0 2.03178 5.41232 6.13703 5.43656 z"
+                                      FillRule="Nonzero" />
+                    </Path.Data>
+                </Path>
+            </Canvas>
+        </Canvas>
     </Viewbox>
+
 </UserControl>

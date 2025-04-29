@@ -13,6 +13,15 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PhaseShift.UI.Tests", "Phas
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PhaseShift.AccuracyTestTool", "PhaseShift.AccuracyTestTool\PhaseShift.AccuracyTestTool.csproj", "{956534D1-8701-4E6A-A1CD-9D3E9ED343F3}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{E2D9A493-D8F1-4CD9-B7B6-E9D387B020EA}"
+	ProjectSection(SolutionItems) = preProject
+		assets\app_icon.ico = assets\app_icon.ico
+		assets\app_icon.svg = assets\app_icon.svg
+		assets\app_icon.xaml = assets\app_icon.xaml
+		assets\pomodoro_icon.svg = assets\pomodoro_icon.svg
+		assets\pomodoro_icon.xaml = assets\pomodoro_icon.xaml
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU

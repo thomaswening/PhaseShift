@@ -1,0 +1,28 @@
+<?xml version="1.0" ?>
+<Viewbox xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:d="http://schemas.microsoft.com/expression/blend/2008" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" Stretch="Uniform" Name="app_icon_xaml">
+    <Canvas UseLayoutRounding="False" Width="512.0" Height="512.0">
+        <Canvas.Clip>
+            <RectangleGeometry Rect="0.0,0.0,512.0,512.0"/>
+        </Canvas.Clip>
+        <Canvas UseLayoutRounding="False" RenderTransform="10.658584,0.0,0.0,11.592855,-0.00323021,-5450.1244">
+            <Path Stroke="#ff000000" StrokeThickness="2.0" StrokeDashCap="Flat">
+                <Path.Fill>
+                    <DrawingBrush ViewportUnits="Absolute" ViewboxUnits="Absolute" Viewbox="0 0 1.5 1" Viewport="0 0 1.5 1" TileMode="Tile" Transform="0.90693552,0.0,0.0,1.6548217,0.0,468.75017">
+                        <DrawingBrush.Drawing>
+                            <DrawingGroup>
+                                <GeometryDrawing Brush="#ff0091ff">
+                                    <GeometryDrawing.Geometry>
+                                        <RectangleGeometry Rect="0.0,-0.5,1.0,2.0"/>
+                                    </GeometryDrawing.Geometry>
+                                </GeometryDrawing>
+                            </DrawingGroup>
+                        </DrawingBrush.Drawing>
+                    </DrawingBrush>
+                </Path.Fill>
+                <Path.Data>
+                    <PathGeometry Figures="m 0 493.592 c 8.28428 0 8.62946 -3.52796 12.3401 -3.70056 c 3.71067 -0.17259 8.25065 9.09551 11.6599 9.23352 c 3.40923 0.13802 6.52445 -12.122 10.2589 -11.9949 c 3.73449 0.12704 4.59647 6.05133 13.7411 6.04103 M 0 493.592 c 8.28428 0 9.23352 3.89396 12.7716 3.80767 c 3.53808 -0.0863 6.04062 -23.8173 9.83758 -23.9899 c 3.79696 -0.17259 7.95834 37.5212 11.4772 37.5897 c 3.51884 0.0686 3.81982 -17.5696 13.9136 -17.8285" FillRule="Nonzero"/>
+                </Path.Data>
+            </Path>
+        </Canvas>
+    </Canvas>
+</Viewbox>

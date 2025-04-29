@@ -8,14 +8,15 @@
         xmlns:timer="clr-namespace:PhaseShift.UI.TimerFeature"
         xmlns:pomodoro="clr-namespace:PhaseShift.UI.PomodoroFeature"
         xmlns:common="clr-namespace:PhaseShift.UI.Common"
+        xmlns:status="clr-namespace:PhaseShift.UI.StatusOverview"
         xmlns:featureIcons="clr-namespace:PhaseShift.UI.Common.Icons"
         xmlns:materialIcons="clr-namespace:Material.Icons.WPF;assembly=Material.Icons.WPF"
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
         mc:Ignorable="d"
-        MinHeight="500"
-        Height="500"
-        MinWidth="500"
-        Width="500"
+        MinHeight="600"
+        Height="600"
+        MinWidth="600"
+        Width="600"
         Style="{StaticResource MaterialDesignWindow}"
         Loaded="Window_Loaded">
 
@@ -101,5 +102,12 @@
                         VerticalAlignment="Stretch"
                         Content="{Binding CurrentViewModel}"
                         Margin="0 0 15 15" />
+
+        <!--Status Bar-->
+        <status:StatusCtrl Grid.Row="2"
+                           Grid.ColumnSpan="2"
+                           Background="{StaticResource MaterialDesignDarkSeparatorBackground}"
+                           Padding="5"
+                           DataContext="{Binding StatusVm}" />
     </Grid>
 </Window>

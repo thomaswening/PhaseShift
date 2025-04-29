@@ -1,8 +1,11 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+﻿using System.ComponentModel;
+
+using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
 using PhaseShift.UI.Common;
 using PhaseShift.UI.PomodoroFeature;
+using PhaseShift.UI.StatusOverview;
 using PhaseShift.UI.StopwatchFeature;
 using PhaseShift.UI.TimerFeature;
 
@@ -34,9 +37,18 @@ internal partial class MainWindowVm : ObservableObject
         };
 
         CurrentViewModel = _viewModels[typeof(PomodoroNavigationVm)];
+        StatusVm = new StatusVm(pomodoroNavigationVm.TimerVm, timerCollectionVm, stopwatchVm, CurrentViewModel);
+        PropertyChanged += OnPropertyChanged;
     }
 
     public event EventHandler<TimerCompletedEventArgs>? TimerCompleted;
+    public StatusVm StatusVm { get; init; }
+
+    [RelayCommand]
+    private void ShowPomodoroTimer()
+    {
+        CurrentViewModel = _viewModels[typeof(PomodoroNavigationVm)];
+    }
 
     [RelayCommand]
     private void ShowStopwatch()
@@ -50,9 +62,11 @@ internal partial class MainWindowVm : ObservableObject
         CurrentViewModel = _viewModels[typeof(TimerCollectionVm)];
     }
 
-    [RelayCommand]
-    public void ShowPomodoroTimer()
+    private void OnPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        CurrentViewModel = _viewModels[typeof(PomodoroNavigationVm)];
+        if (e.PropertyName == nameof(CurrentViewModel))
+        {
+            StatusVm.SelectedVm = CurrentViewModel;
+        }
     }
 }

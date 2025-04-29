@@ -1,5 +1,6 @@
 ﻿using NUnit.Framework;
 
+using PhaseShift.UI.PomodoroFeature;
 using PhaseShift.UI.StopwatchFeature;
 using PhaseShift.UI.Tests.Mocks;
 using PhaseShift.UI.TimerFeature;
@@ -46,5 +47,18 @@ internal class MainWindowVmTests
 
         // Assert
         Assert.That(_mainWindowVm!.CurrentViewModel.GetType(), Is.EqualTo(typeof(TimerCollectionVm)));
+    }
+
+    [Test]
+    public void ShowPomodoroTimer_ShouldSetCurrentViewModelToPomodoroNavigationVm()
+    {
+        // Arrange
+        _mainWindowVm!.ShowStopwatchCommand.Execute(null);
+        
+        // Act
+        _mainWindowVm!.ShowPomodoroTimerCommand.Execute(null);
+
+        // Assert
+        Assert.That(_mainWindowVm!.CurrentViewModel.GetType(), Is.EqualTo(typeof(PomodoroNavigationVm)));
     }
 }

@@ -63,7 +63,7 @@
         </Grid.ColumnDefinitions>
 
         <!--Navigation Menu-->
-        <Border Grid.RowSpan="2"
+        <Border Grid.RowSpan="3"
                 Grid.Column="0"
                 Background="{StaticResource MaterialDesignDarkSeparatorBackground}"
                 Padding="5">
@@ -108,30 +108,22 @@
                         Margin="0 0 15 15" />
 
         <!--Status Bar-->
-        
-        <Grid Grid.Row="2"
-              Grid.ColumnSpan="2"
-              Background="{StaticResource MaterialDesignDarkSeparatorBackground}">
+        <Button Grid.Row="2"
+                Grid.Column="0"
+                Name="InfoButton"
+                Click="InfoButton_Click"
+                HorizontalAlignment="Center"
+                Padding="0"
+                Style="{StaticResource MaterialDesignFlatButton}">
 
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="Auto" />
-            </Grid.ColumnDefinitions>
+            <materialIcons:MaterialIcon Kind="Info" />
+        </Button>
 
-            <status:StatusCtrl Grid.Column="0"
-                               Padding="5"
-                               DataContext="{Binding StatusVm}" />
-
-            <Button Grid.Column="1"
-                    Name="InfoButton"
-                    Click="InfoButton_Click"
-                    HorizontalAlignment="Right"         
-                    Padding="0"
-                    Margin="5 0"
-                    Style="{StaticResource MaterialDesignFlatButton}">
-
-                <materialIcons:MaterialIcon Kind="Info"/>
-            </Button>
-        </Grid>        
+        <status:StatusCtrl Grid.Row="2"
+                           Grid.Column="1"
+                           Padding="5"
+                           Background="{StaticResource MaterialDesignDarkSeparatorBackground}"
+                           DataContext="{Binding StatusVm}" />
+       
     </Grid>
 </Window>

@@ -53,6 +53,13 @@ internal partial class NotificationService
 
     public void OnTimerCompleted(object? sender, EventArgs e)
     {
+        if (e is PomodoroTimerCompletedEventArgs pomodoroArgs
+            && pomodoroArgs.WasSkipped)
+        {
+            // Don't notify if the timer was skipped and it's not the end of the session
+            return;
+        }
+
         var message = CreateMessageFromEvent(sender, e); // If the event is not recognized, message will be null
 
         // Don't notify if the timer was skipped and it's not the end of the session

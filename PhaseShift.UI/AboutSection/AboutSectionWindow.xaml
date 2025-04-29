@@ -37,7 +37,7 @@
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
 
-            <Image Source="/AboutSection/app_icon.ico"
+            <Image Source="../app_icon.ico"
                    Width="100"
                    Height="100"
                    Grid.Column="0"

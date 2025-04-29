@@ -124,7 +124,8 @@
             <StackPanel Orientation="Horizontal"
                         Style="{StaticResource PomodoroStatusPanel}">
 
-                <featureIcons:PomodoroIcon Margin="0 0 10 0" />
+                <featureIcons:PomodoroIcon Margin="0 0 10 0"
+                                           MaxHeight="15"/>
 
                 <TextBlock>
                     <Run Text="{Binding PomodoroTimerVm.CurrentPhase, Converter={StaticResource PhaseName}}" />

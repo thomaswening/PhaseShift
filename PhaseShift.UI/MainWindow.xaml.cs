@@ -9,6 +9,7 @@ using MaterialDesignThemes.Wpf;
 
 using PhaseShift.UI.Common;
 using PhaseShift.UI.Notifications;
+using PhaseShift.UI.AboutSection;
 
 namespace PhaseShift.UI;
 
@@ -92,5 +93,15 @@ public partial class MainWindow : Window
         }
 
         vm.TimerCompleted += _notificationService.OnTimerCompleted;
+    }
+
+    private void InfoButton_Click(object sender, RoutedEventArgs e)
+    {
+        var aboutWindow = new AboutSectionWindow
+        {
+            Owner = this
+        };
+
+        aboutWindow.ShowDialog();
     }
 }

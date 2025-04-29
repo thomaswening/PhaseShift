@@ -30,7 +30,10 @@
                BasedOn="{StaticResource MaterialDesignFlatButton}">
 
             <Setter Property="Margin"
-                    Value="0 15" />
+                    Value="5 15" />
+
+            <Setter Property="Padding"
+                    Value="0" />
         </Style>
 
         <DataTemplate DataType="{x:Type timer:TimerCollectionVm}">
@@ -105,10 +108,30 @@
                         Margin="0 0 15 15" />
 
         <!--Status Bar-->
-        <status:StatusCtrl Grid.Row="2"
-                           Grid.ColumnSpan="2"
-                           Background="{StaticResource MaterialDesignDarkSeparatorBackground}"
-                           Padding="5"
-                           DataContext="{Binding StatusVm}" />
+        
+        <Grid Grid.Row="2"
+              Grid.ColumnSpan="2"
+              Background="{StaticResource MaterialDesignDarkSeparatorBackground}">
+
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <status:StatusCtrl Grid.Column="0"
+                               Padding="5"
+                               DataContext="{Binding StatusVm}" />
+
+            <Button Grid.Column="1"
+                    Name="InfoButton"
+                    Click="InfoButton_Click"
+                    HorizontalAlignment="Right"         
+                    Padding="0"
+                    Margin="5 0"
+                    Style="{StaticResource MaterialDesignFlatButton}">
+
+                <materialIcons:MaterialIcon Kind="Info"/>
+            </Button>
+        </Grid>        
     </Grid>
 </Window>

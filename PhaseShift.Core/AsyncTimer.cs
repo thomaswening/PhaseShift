@@ -46,6 +46,11 @@ public class AsyncTimer
             return;
         }
 
+        while (_cancellationTokenSource.IsCancellationRequested)
+        {
+            Thread.Sleep(10); // CTS Refresh is still in progress on different thread
+        }
+
         try
         {
             Task.Run(() => StartAsync(_cancellationTokenSource.Token), _cancellationTokenSource.Token);

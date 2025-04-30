@@ -1,11 +1,10 @@
-﻿using System.Diagnostics;
-using System.Media;
+﻿using System.Media;
 using System.Runtime.InteropServices;
 using System.Windows;
 
-using MaterialDesignThemes.Wpf;
-
+using PhaseShift.Core;
 using PhaseShift.UI.Common;
+using PhaseShift.UI.PomodoroFeature;
 using PhaseShift.UI.TimerFeature;
 
 namespace PhaseShift.UI.Notifications;
@@ -15,6 +14,7 @@ internal partial class NotificationService
     private readonly IDispatcher _dispatcher;
     private readonly SystemSound _notificationSound = SystemSounds.Exclamation;
     private readonly NotifyIcon _notifyIcon;
+
     public NotificationService(IDispatcher dispatcher, string appName, NotifyIcon notifyIcon)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(appName, nameof(appName));
@@ -53,6 +53,13 @@ internal partial class NotificationService
 
     public void OnTimerCompleted(object? sender, EventArgs e)
     {
+        if (e is PomodoroTimerCompletedEventArgs pomodoroArgs
+            && pomodoroArgs.WasSkipped)
+        {
+            // Don't notify if the timer was skipped and it's not the end of the session
+            return;
+        }
+
         var message = CreateMessageFromEvent(sender, e); // If the event is not recognized, message will be null
 
         // Don't notify if the timer was skipped and it's not the end of the session
@@ -76,8 +83,32 @@ internal partial class NotificationService
         return e switch
         {
             StandardTimerCompletedEventArgs args => CreateStandardTimerMessage(args),
+            PomodoroTimerCompletedEventArgs args => CreatePomodoroMessage(args),
             _ => null,
         };
+    }
+
+    private static string? CreatePomodoroMessage(PomodoroTimerCompletedEventArgs args)
+    {
+        if (args.TimerCompleted)
+        {
+            return "Pomodoro session completed!";
+        }
+
+        var msg = args.NextPhase switch
+        {
+            PomodoroPhase.Work => "Time to get back to work!",
+            PomodoroPhase.ShortBreak => $"Time for a short break!",
+            PomodoroPhase.LongBreak => "Time for a long break!",
+            _ => null
+        };
+
+        if (args.WorkUnitsCompleted < args.TotalWorkUnits)
+        {
+            msg += $"\nCompleted work units: {args.WorkUnitsCompleted} / {args.TotalWorkUnits}";
+        }
+
+        return msg;
     }
 
     private static string CreateStandardTimerMessage(StandardTimerCompletedEventArgs args)

@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-using NUnit.Framework;
+﻿using NUnit.Framework;
 
 using PhaseShift.UI.Common;
 using PhaseShift.UI.Tests.Mocks;
@@ -16,6 +10,8 @@ namespace PhaseShift.UI.Tests.TimerFeature;
 internal class TimerVmTests
 {
     private const int TimerDurationMilliseconds = 1000;
+    private const int DelayIntervalMilliseconds = 100;
+
     private IDispatcher? _dispatcher;
     private TimerVm? _timerVm;
 
@@ -84,7 +80,7 @@ internal class TimerVmTests
         _timerVm!.StartTimerCommand.Execute(null);
 
         // Act
-        await Task.Delay(100);
+        await Task.Delay(DelayIntervalMilliseconds);
 
         // Assert
         Assert.That(_timerVm.RemainingTime.TotalMilliseconds, Is.LessThan(TimerDurationMilliseconds));
@@ -95,12 +91,12 @@ internal class TimerVmTests
     {
         // Arrange
         _timerVm!.StartTimerCommand.Execute(null);
-        await Task.Delay(100);
+        await Task.Delay(DelayIntervalMilliseconds);
         _timerVm.StopTimerCommand.Execute(null);
         var remainingTimeBefore = _timerVm.RemainingTime;
 
         // Act
-        await Task.Delay(100);
+        await Task.Delay(DelayIntervalMilliseconds);
 
         // Assert
         Assert.That(_timerVm.RemainingTime, Is.EqualTo(remainingTimeBefore));
@@ -113,7 +109,7 @@ internal class TimerVmTests
         _timerVm!.StartTimerCommand.Execute(null);
 
         // Act
-        await Task.Delay(TimerDurationMilliseconds + 100);
+        await Task.Delay(TimerDurationMilliseconds + DelayIntervalMilliseconds);
 
         // Assert
         Assert.That(_timerVm.RemainingTime.TotalMilliseconds, Is.EqualTo(TimerDurationMilliseconds));
@@ -126,10 +122,10 @@ internal class TimerVmTests
         _timerVm!.StartTimerCommand.Execute(null);
 
         // Act
-        await Task.Delay(TimerDurationMilliseconds - 100);
+        await Task.Delay(TimerDurationMilliseconds - DelayIntervalMilliseconds);
 
         // Assert
-        Assert.That(_timerVm.RemainingTime.TotalMilliseconds, Is.EqualTo(100).Within(20));
+        Assert.That(_timerVm.RemainingTime.TotalMilliseconds, Is.EqualTo(DelayIntervalMilliseconds).Within(20));
     }
 
     [Test]
@@ -139,7 +135,7 @@ internal class TimerVmTests
         _timerVm!.StartTimerCommand.Execute(null);
 
         // Act
-        await Task.Delay(100);
+        await Task.Delay(DelayIntervalMilliseconds);
         _timerVm.ResetTimerCommand.Execute(null);
 
         // Assert
@@ -153,7 +149,7 @@ internal class TimerVmTests
         _timerVm!.StartTimerCommand.Execute(null);
 
         // Act
-        await Task.Delay(100);
+        await Task.Delay(DelayIntervalMilliseconds);
 
         // Assert
         Assert.That(_timerVm.Progress, Is.GreaterThan(0));
@@ -164,12 +160,12 @@ internal class TimerVmTests
     {
         // Arrange
         _timerVm!.StartTimerCommand.Execute(null);
-        await Task.Delay(100);
+        await Task.Delay(DelayIntervalMilliseconds);
         _timerVm.StopTimerCommand.Execute(null);
         var progressBefore = _timerVm.Progress;
 
         // Act
-        await Task.Delay(100);
+        await Task.Delay(DelayIntervalMilliseconds);
 
         // Assert
         Assert.That(_timerVm.Progress, Is.EqualTo(progressBefore));
@@ -182,7 +178,7 @@ internal class TimerVmTests
         _timerVm!.StartTimerCommand.Execute(null);
 
         // Act
-        await Task.Delay(TimerDurationMilliseconds - 100);
+        await Task.Delay(TimerDurationMilliseconds - DelayIntervalMilliseconds);
 
         // Assert
         Assert.That(_timerVm.Progress, Is.EqualTo(1).Within(0.1));
@@ -195,7 +191,7 @@ internal class TimerVmTests
         _timerVm!.StartTimerCommand.Execute(null);
 
         // Act
-        await Task.Delay(TimerDurationMilliseconds);
+        await Task.Delay(TimerDurationMilliseconds + DelayIntervalMilliseconds);
 
         // Assert
         Assert.That(_timerVm.Progress, Is.EqualTo(0));
@@ -219,7 +215,7 @@ internal class TimerVmTests
     {
         // Arrange
         _timerVm!.StartTimerCommand.Execute(null);
-        await Task.Delay(100); // Let the timer run for a while
+        await Task.Delay(DelayIntervalMilliseconds); // Let the timer run for a while
 
         // Act
         _timerVm.StopTimerCommand.Execute(null);
@@ -233,7 +229,7 @@ internal class TimerVmTests
     {
         // Arrange
         _timerVm!.StartTimerCommand.Execute(null);
-        await Task.Delay(100); // Let the timer run for a while
+        await Task.Delay(DelayIntervalMilliseconds); // Let the timer run for a while
 
         // Act
         _timerVm.StopTimerCommand.Execute(null);
@@ -247,7 +243,7 @@ internal class TimerVmTests
     {
         // Arrange
         _timerVm!.StartTimerCommand.Execute(null);
-        await Task.Delay(100); // Let the timer run for a while
+        await Task.Delay(DelayIntervalMilliseconds); // Let the timer run for a while
 
         // Act
         _timerVm.ResetTimerCommand.Execute(null);
@@ -261,7 +257,7 @@ internal class TimerVmTests
     {
         // Arrange
         _timerVm!.StartTimerCommand.Execute(null);
-        await Task.Delay(100); // Let the timer run for a while
+        await Task.Delay(DelayIntervalMilliseconds); // Let the timer run for a while
 
         // Act
         _timerVm.ResetTimerCommand.Execute(null);
@@ -275,7 +271,7 @@ internal class TimerVmTests
     {
         // Arrange
         _timerVm!.StartTimerCommand.Execute(null);
-        await Task.Delay(100); // Let the timer run for a while
+        await Task.Delay(DelayIntervalMilliseconds); // Let the timer run for a while
 
         // Act
         _timerVm.ResetTimerCommand.Execute(null);
@@ -321,7 +317,7 @@ internal class TimerVmTests
 
         // Act
         _timerVm.StartTimerCommand.Execute(null);
-        await Task.Delay(TimerDurationMilliseconds + 100);
+        await Task.Delay(TimerDurationMilliseconds + DelayIntervalMilliseconds);
 
         // Assert
         Assert.That(eventInvoked, Is.True);

@@ -6,15 +6,18 @@
         xmlns:local="clr-namespace:PhaseShift.UI"
         xmlns:stopwatch="clr-namespace:PhaseShift.UI.StopwatchFeature"
         xmlns:timer="clr-namespace:PhaseShift.UI.TimerFeature"
+        xmlns:pomodoro="clr-namespace:PhaseShift.UI.PomodoroFeature"
         xmlns:common="clr-namespace:PhaseShift.UI.Common"
+        xmlns:status="clr-namespace:PhaseShift.UI.StatusOverview"
         xmlns:featureIcons="clr-namespace:PhaseShift.UI.Common.Icons"
         xmlns:materialIcons="clr-namespace:Material.Icons.WPF;assembly=Material.Icons.WPF"
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
         mc:Ignorable="d"
-        MinHeight="500"
-        Height="500"
-        MinWidth="500"
-        Width="500"
+        Icon="/app_icon.ico"
+        MinHeight="600"
+        Height="600"
+        MinWidth="600"
+        Width="600"
         Style="{StaticResource MaterialDesignWindow}"
         Loaded="Window_Loaded">
 
@@ -27,7 +30,10 @@
                BasedOn="{StaticResource MaterialDesignFlatButton}">
 
             <Setter Property="Margin"
-                    Value="0 15" />
+                    Value="5 15" />
+
+            <Setter Property="Padding"
+                    Value="0" />
         </Style>
 
         <DataTemplate DataType="{x:Type timer:TimerCollectionVm}">
@@ -36,6 +42,10 @@
         
         <DataTemplate DataType="{x:Type stopwatch:StopwatchVm}">
             <stopwatch:StopwatchCtrl />
+        </DataTemplate>
+        
+        <DataTemplate DataType="{x:Type pomodoro:PomodoroNavigationVm}">
+            <pomodoro:PomodoroNavigationCtrl />
         </DataTemplate>
     </Window.Resources>
 
@@ -53,7 +63,7 @@
         </Grid.ColumnDefinitions>
 
         <!--Navigation Menu-->
-        <Border Grid.RowSpan="2"
+        <Border Grid.RowSpan="3"
                 Grid.Column="0"
                 Background="{StaticResource MaterialDesignDarkSeparatorBackground}"
                 Padding="5">
@@ -61,6 +71,12 @@
             <StackPanel Orientation="Vertical"
                         HorizontalAlignment="Center">
 
+                <Button ToolTip="Pomodoro Timer"
+                        Command="{Binding ShowPomodoroTimerCommand}">
+
+                    <featureIcons:PomodoroIcon />
+                </Button>
+                
                 <Button Command="{Binding ShowTimersCommand}"
                         ToolTip="Timers">
 
@@ -90,5 +106,24 @@
                         VerticalAlignment="Stretch"
                         Content="{Binding CurrentViewModel}"
                         Margin="0 0 15 15" />
+
+        <!--Status Bar-->
+        <Button Grid.Row="2"
+                Grid.Column="0"
+                Name="InfoButton"
+                Click="InfoButton_Click"
+                HorizontalAlignment="Center"
+                Padding="0"
+                Style="{StaticResource MaterialDesignFlatButton}">
+
+            <materialIcons:MaterialIcon Kind="Info" />
+        </Button>
+
+        <status:StatusCtrl Grid.Row="2"
+                           Grid.Column="1"
+                           Padding="5"
+                           Background="{StaticResource MaterialDesignDarkSeparatorBackground}"
+                           DataContext="{Binding StatusVm}" />
+       
     </Grid>
 </Window>

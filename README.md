@@ -1,5 +1,9 @@
-# PhaseShift
-A stylish productivity timer app for developers, with Pomodoro, stopwatch, and custom timer modes. Designed to keep your focus in phase.
+<picture>
+  <source srcset="./assets/app_banner_white_stroke.svg" media="(prefers-color-scheme: dark)">
+  <img src="./assets/app_banner.svg" alt="PhaseShift App Banner" width=70%>
+</picture><br><br>
+
+A stylish productivity timer app for developers, with Pomodoro, stopwatch, and custom timer modes. Designed to keep your focus in phase.<br><br>
 
 ## 🍅 What is the Pomodoro Technique?
 
@@ -15,12 +19,25 @@ It’s a surprisingly effective way to avoid burnout, reduce procrastination, an
 
 ## Features
 
+- ✅ **Pomodoro Timer** – Work/break intervals based on the classic Pomodoro technique.
 - ✅ **Stopwatch Mode** – Start, stop, and reset your work sessions with ease.
-- ✅ **Custom Timers** – Set countdowns for arbitrary tasks and activities.  
+- ✅ **Custom Timers** – Set countdowns for arbitrary tasks and activities.
+  
+## Screenshots
+
+<table>
+  <tr>
+    <td><img src="./assets/screenshots/pomodoro-timer.png" width="300" alt="Pomodoro Timer screenshot"/></td>
+    <td><img src="./assets/screenshots/pomodoro-settings.png" width="300" alt="Pomodoro Settings screenshot"/></td>
+  </tr>
+  <tr>
+    <td><img src="./assets/screenshots/stopwatch.png" width="300" alt="Stopwatch screenshot"/></td>
+    <td><img src="./assets/screenshots/timers-overview.png" width="300" alt="Timers Overview screenshot"/></td>
+  </tr>
+</table>
 
 ## Planned Features
 
-- 🍅 **Pomodoro Timer** – Work/break intervals based on the classic Pomodoro technique.
 - ⚙️ **User Settings & Persistence** – Configure durations, themes, and preferences.  
 - 🔁 **Stopwatch Rounds** – Track multiple rounds/splits within a single stopwatch session.
 

@@ -1,12 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows.Threading;
+﻿using NUnit.Framework;
 
-using NUnit.Framework;
-
+using PhaseShift.UI.PomodoroFeature;
 using PhaseShift.UI.StopwatchFeature;
 using PhaseShift.UI.Tests.Mocks;
 using PhaseShift.UI.TimerFeature;
@@ -36,7 +30,7 @@ internal class MainWindowVmTests
     public void ShowStopwatch_ShouldSetCurrentViewModelToStopwatchVm()
     {
         // Act
-        _mainWindowVm!.ShowStopwatch();
+        _mainWindowVm!.ShowStopwatchCommand.Execute(null);
 
         // Assert
         Assert.That(_mainWindowVm!.CurrentViewModel.GetType(), Is.EqualTo(typeof(StopwatchVm)));
@@ -46,12 +40,25 @@ internal class MainWindowVmTests
     public void ShowTimers_ShouldSetCurrentViewModelToTimerCollectionVm()
     {
         // Arrange
-        _mainWindowVm!.ShowStopwatch();
+        _mainWindowVm!.ShowStopwatchCommand.Execute(null);
 
         // Act
-        _mainWindowVm!.ShowTimers();
+        _mainWindowVm!.ShowTimersCommand.Execute(null);
 
         // Assert
         Assert.That(_mainWindowVm!.CurrentViewModel.GetType(), Is.EqualTo(typeof(TimerCollectionVm)));
+    }
+
+    [Test]
+    public void ShowPomodoroTimer_ShouldSetCurrentViewModelToPomodoroNavigationVm()
+    {
+        // Arrange
+        _mainWindowVm!.ShowStopwatchCommand.Execute(null);
+        
+        // Act
+        _mainWindowVm!.ShowPomodoroTimerCommand.Execute(null);
+
+        // Assert
+        Assert.That(_mainWindowVm!.CurrentViewModel.GetType(), Is.EqualTo(typeof(PomodoroNavigationVm)));
     }
 }

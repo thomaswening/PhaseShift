@@ -21,7 +21,7 @@ internal class PomodoroTimerTests : BaseTestHelper
             WorkUnitsBeforeLongBreak = WorkUnitsBeforeLongBreak
         };
 
-        _pomodoroTimer = new PomodoroTimer(Substitute.For<Action>(), settings);
+        _pomodoroTimer = new PomodoroTimer(Substitute.For<Action<TimeSpan>>(), settings);
     }
 
     [Test]
@@ -29,406 +29,603 @@ internal class PomodoroTimerTests : BaseTestHelper
     {
         Assert.Multiple(() =>
         {
-            Assert.That(_pomodoroTimer!.Info.CurrentPhase, Is.EqualTo(PomodoroPhase.Work));
-            Assert.That(_pomodoroTimer.Info.IsRunning, Is.False);
-            Assert.That(_pomodoroTimer.Info.WorkUnitsCompleted, Is.Zero);
+            Assert.That(_pomodoroTimer!.CurrentPhase, Is.EqualTo(PomodoroPhase.Work));
+            Assert.That(_pomodoroTimer.IsRunning, Is.False);
+            Assert.That(_pomodoroTimer.CompletedWorkUnits, Is.Zero);
+            Assert.That(_pomodoroTimer.ElapsedTimeInCurrentPhase, Is.EqualTo(TimeSpan.Zero));
+            Assert.That(_pomodoroTimer.ElapsedTimeInSession, Is.EqualTo(TimeSpan.Zero));
         });
     }
 
     [Test]
-    public void UpdateSettings_UpdatesTimersAndSettings()
+    [TestCase(0, 1, 1, 1, 1)]
+    [TestCase(1, 0, 1, 1, 1)]
+    [TestCase(1, 1, 0, 1, 1)]
+    [TestCase(1, 1, 1, 0, 1)]
+    [TestCase(1, 1, 1, 1, 0)]
+    public void Constructor_Throws_WhenInvalidSettingsProvided(int workSeconds, int shortBreakSeconds, int longBreakSeconds, int totalWorkUnits, int workUnitsBeforeLongBreak)
     {
-        // Arrange
-        var newSettings = new PomodoroSettings
+        var invalidSettings = new PomodoroSettings
         {
-            WorkDurationSeconds = 2,
-            ShortBreakDurationSeconds = 3,
-            LongBreakDurationSeconds = 4,
-            TotalWorkUnits = 5,
-            WorkUnitsBeforeLongBreak = 6
+            WorkDurationSeconds = workSeconds,
+            ShortBreakDurationSeconds = shortBreakSeconds,
+            LongBreakDurationSeconds = longBreakSeconds,
+            TotalWorkUnits = totalWorkUnits,
+            WorkUnitsBeforeLongBreak = workUnitsBeforeLongBreak
         };
 
+        Assert.Throws<ArgumentOutOfRangeException>(() => new PomodoroTimer(Substitute.For<Action<TimeSpan>>(), invalidSettings));
+    }
+
+    [Test]
+    public async Task Start_ShouldStartTimer()
+    {
+        // Arrange
+        var wasPhaseCompletedInvoked = false;
+        var wasSessionCompletedInvoked = false;
+        var wasPhaseSkippedInvoked = false;
+        var isRunning = false;
+
+        _pomodoroTimer!.PhaseCompleted += (_, _) => wasPhaseCompletedInvoked = true;
+        _pomodoroTimer.SessionCompleted += (_, _) => wasSessionCompletedInvoked = true;
+        _pomodoroTimer.PhaseSkipped += (_, _) => wasPhaseSkippedInvoked = true;
+
         // Act
-        _pomodoroTimer!.UpdateSettings(newSettings);
+        _pomodoroTimer.Start();
+        await Task.Delay(TestDelayMilliseconds);
+        isRunning = _pomodoroTimer.IsRunning;
+
+        _pomodoroTimer.Stop();
 
         // Assert
         Assert.Multiple(() =>
         {
-            Assert.That(_pomodoroTimer.Info.Settings.WorkDurationSeconds, Is.EqualTo(newSettings.WorkDurationSeconds));
-            Assert.That(_pomodoroTimer.Info.Settings.ShortBreakDurationSeconds, Is.EqualTo(newSettings.ShortBreakDurationSeconds));
-            Assert.That(_pomodoroTimer.Info.Settings.LongBreakDurationSeconds, Is.EqualTo(newSettings.LongBreakDurationSeconds));
-            Assert.That(_pomodoroTimer.Info.Settings.TotalWorkUnits, Is.EqualTo(newSettings.TotalWorkUnits));
-            Assert.That(_pomodoroTimer.Info.Settings.WorkUnitsBeforeLongBreak, Is.EqualTo(newSettings.WorkUnitsBeforeLongBreak));
+            Assert.That(isRunning, Is.True, 
+                "Timer should be running after Start is called.");
+
+            Assert.That(_pomodoroTimer.ElapsedTimeInCurrentPhase, Is.GreaterThan(TimeSpan.Zero), 
+                "Elapsed time in current phase should be greater than zero after starting.");
+
+            Assert.That(_pomodoroTimer.RemainingTimeInCurrentPhase.TotalSeconds, Is.LessThan(_pomodoroTimer.Settings.WorkDurationSeconds), 
+                "Remaining time in current phase should be less than work duration after starting.");
+
+            Assert.That(_pomodoroTimer.ElapsedTimeInSession, Is.GreaterThan(TimeSpan.Zero),
+                "Elapsed time in session should be greater than zero after starting.");
+
+            Assert.That(_pomodoroTimer.RemainingTimeInSession, Is.EqualTo(_pomodoroTimer.SessionDuration - _pomodoroTimer.ElapsedTimeInSession),
+                "Remaining time in session should equal session duration minus elapsed time in session after starting.");
+
+            Assert.That(_pomodoroTimer.CompletedWorkUnits, Is.EqualTo(0),
+                "Completed work units should be zero after starting the timer.");
+
+            Assert.That(wasPhaseSkippedInvoked, Is.False,
+                $"{nameof(PomodoroTimer.PhaseSkipped)} event should not be invoked when starting the timer.");
+
+            Assert.That(wasPhaseCompletedInvoked, Is.False,
+                $"{nameof(PomodoroTimer.PhaseCompleted)} event should not be invoked when starting the timer.");
+
+            Assert.That(wasSessionCompletedInvoked, Is.False,
+                $"{nameof(PomodoroTimer.SessionCompleted)} event should not be invoked when starting the timer.");
         });
     }
 
     [Test]
-    public void UpdateSettings_InvokesTickCallback()
+    public async Task Start_ShouldDoNothing_WhenAlreadyRunning()
     {
         // Arrange
-        var wasTickCallbackInvoked = false;
-        var pomodoroTimer = new PomodoroTimer(() => { wasTickCallbackInvoked = true; }, new PomodoroSettings());
+        var wasPhaseCompletedInvoked = false;
+        var wasSessionCompletedInvoked = false;
+        var wasPhaseSkippedInvoked = false;
+        var isStillRunning = false;
+
+        _pomodoroTimer!.PhaseCompleted += (_, _) => wasPhaseCompletedInvoked = true;
+        _pomodoroTimer.SessionCompleted += (_, _) => wasSessionCompletedInvoked = true;
+        _pomodoroTimer.PhaseSkipped += (_, _) => wasPhaseSkippedInvoked = true;
 
         // Act
-        pomodoroTimer.UpdateSettings(new PomodoroSettings());
+        _pomodoroTimer.Start();
+        await Task.Delay(TestDelayMilliseconds);
+        _pomodoroTimer.Start(); // Attempt to start again
+        isStillRunning = _pomodoroTimer.IsRunning;
+
+        _pomodoroTimer.Stop();
 
         // Assert
-        Assert.That(wasTickCallbackInvoked, Is.True);
+        Assert.Multiple(() =>
+        {
+            Assert.That(isStillRunning, Is.True, 
+                "Timer should still be running.");
+
+            Assert.That(_pomodoroTimer.ElapsedTimeInCurrentPhase, Is.GreaterThan(TimeSpan.Zero), 
+                "Elapsed time should not be reset.");
+
+            Assert.That(_pomodoroTimer.ElapsedTimeInSession, Is.GreaterThan(TimeSpan.Zero),
+                "Elapsed time in session should not be reset.");
+
+            Assert.That(_pomodoroTimer.RemainingTimeInSession, Is.EqualTo(_pomodoroTimer.SessionDuration - _pomodoroTimer.ElapsedTimeInSession),
+                "Remaining time in session should equal session duration minus elapsed time in session after starting.");
+
+            Assert.That(wasPhaseSkippedInvoked, Is.False, 
+                $"{nameof(PomodoroTimer.PhaseSkipped)} event should not be invoked when starting an already running timer.");
+
+            Assert.That(wasPhaseCompletedInvoked, Is.False, 
+                $"{nameof(PomodoroTimer.PhaseCompleted)} event should not be invoked when starting an already running timer.");
+
+            Assert.That(wasSessionCompletedInvoked, Is.False, 
+                $"{nameof(PomodoroTimer.SessionCompleted)} event should not be invoked when starting an already running timer.");
+        });
     }
 
     [Test]
-    public async Task PhaseCompleted_IsInvoked_WhenTimerPassesToNextPhaseOrIsSkipped()
+    public async Task Start_ShouldTriggerTickCallbackWithElapsedTime()
     {
         // Arrange
-        bool phaseCompletedInvoked = false;
-        bool phaseWasSkipped = false;
+        bool wasTriggered = false;
+        var elapsedTime = TimeSpan.Zero;
 
-        _pomodoroTimer!.PhaseCompleted += (_, wasSkipped) =>
+        void tickCallback(TimeSpan time)
         {
-            phaseCompletedInvoked = true;
-            phaseWasSkipped = wasSkipped;
+            wasTriggered = true;
+            elapsedTime = time;
+        }
+
+        var settings = new PomodoroSettings
+        {
+            WorkDurationSeconds = WorkDurationSeconds,
+            ShortBreakDurationSeconds = ShortBreakDurationSeconds,
+            LongBreakDurationSeconds = LongBreakDurationSeconds,
+            TotalWorkUnits = 1,
+            WorkUnitsBeforeLongBreak = 1
         };
 
+        var pomodoroTimer = new PomodoroTimer(tickCallback, settings);
+
         // Act
-        _pomodoroTimer!.StartActiveTimer();
-        await Task.Delay(WorkDurationSeconds * 1000 + TestDelayMilliseconds);
-
-        // Assert
-        Assert.Multiple(() =>
-        {
-            Assert.That(phaseCompletedInvoked, Is.True);
-            Assert.That(phaseWasSkipped, Is.False);
-        });
-
-        // Reset for skip test
-        phaseCompletedInvoked = false;
-        phaseWasSkipped = false;
-
-        // Act  
-        _pomodoroTimer!.StartActiveTimer();
+        pomodoroTimer.Start();
         await Task.Delay(TestDelayMilliseconds);
-        _pomodoroTimer!.SkipActiveTimer();
+        pomodoroTimer.Stop();
 
         // Assert
         Assert.Multiple(() =>
         {
-            Assert.That(phaseCompletedInvoked, Is.True);
-            Assert.That(phaseWasSkipped, Is.True);
+            Assert.That(wasTriggered, Is.True, 
+                "Tick callback was not triggered.");
+
+            Assert.That(elapsedTime, Is.GreaterThan(TimeSpan.Zero), 
+                "Elapsed time should be greater than zero.");
+
+            Assert.That(elapsedTime.TotalMilliseconds, Is.EqualTo(TestDelayMilliseconds).Within(10).Percent, 
+                "Elapsed time should match the delay used in the test.");
         });
     }
 
     [Test]
-    public async Task PhaseCompleted_IsNotInvoked_WhenActiveTimerIsStoppedOrReset()
+    public async Task Start_ShouldAdvanceToNextPhase_WhenCurrentPhaseCompletes()
     {
         // Arrange
-        bool phaseCompletedInvoked = false;
-        _pomodoroTimer!.PhaseCompleted += (_, _) => phaseCompletedInvoked = true;
+        var wasPhaseCompletedInvoked = false;
+        var wasSessionCompletedInvoked = false;
+        var wasPhaseSkippedInvoked = false;
+        var isRunning = false;
+
+        _pomodoroTimer!.PhaseCompleted += (_, _) => wasPhaseCompletedInvoked = true;
+        _pomodoroTimer.SessionCompleted += (_, _) => wasSessionCompletedInvoked = true;
+        _pomodoroTimer.PhaseSkipped += (_, _) => wasPhaseSkippedInvoked = true;
 
         // Act
-        _pomodoroTimer!.StartActiveTimer();
-        await Task.Delay(TestDelayMilliseconds);
-        _pomodoroTimer!.StopActiveTimer();
-
-        // Assert
-        Assert.That(phaseCompletedInvoked, Is.False);
-
-        // Reset for reset test
-        phaseCompletedInvoked = false;
-
-        // Act
-        _pomodoroTimer!.StartActiveTimer();
-        await Task.Delay(TestDelayMilliseconds);
-        _pomodoroTimer!.ResetActiveTimer();
-
-        // Assert
-        Assert.That(phaseCompletedInvoked, Is.False);
-    }
-
-    [Test]
-    public async Task ResetActiveTimer_ResetsActiveTimer()
-    {
-        // Arrange
-        TimeSpan activeTimerDuration = _pomodoroTimer!.Info.RemainingTimeInCurrentPhase;
-
-        // Act
-        _pomodoroTimer!.StartActiveTimer();
-        await Task.Delay(TestDelayMilliseconds);
-
-        _pomodoroTimer!.ResetActiveTimer();
+        _pomodoroTimer.Start();
+        await Task.Delay(1000 * WorkDurationSeconds + TestDelayMilliseconds);
+        isRunning = _pomodoroTimer.IsRunning;
+        _pomodoroTimer.Stop();
 
         // Assert
         Assert.Multiple(() =>
         {
-            Assert.That(_pomodoroTimer.Info.ElapsedTimeInCurrentPhase, Is.EqualTo(TimeSpan.Zero));
-            Assert.That(_pomodoroTimer.Info.RemainingTimeInCurrentPhase, Is.EqualTo(activeTimerDuration));
-            Assert.That(_pomodoroTimer.Info.IsRunning, Is.False);
-            Assert.That(_pomodoroTimer.Info.CurrentPhase, Is.EqualTo(PomodoroPhase.Work));
+            Assert.That(_pomodoroTimer.CurrentPhase, Is.Not.EqualTo(PomodoroPhase.Work), 
+                "Current phase should be a break after first work phase.");
+
+            Assert.That(isRunning, Is.True, 
+                "Timer should still be running after advancing to the next phase.");
+
+            Assert.That(_pomodoroTimer.ElapsedTimeInCurrentPhase.TotalMilliseconds, Is.LessThan(TestDelayMilliseconds),
+                "Elapsed time in current phase should be reset after advancing to the next phase.");
+
+            Assert.That(_pomodoroTimer.ElapsedTimeInSession.TotalSeconds, Is.GreaterThan(WorkDurationSeconds),
+                "Elapsed time in session should be greater than work duration after first work phase.");
+
+            Assert.That(_pomodoroTimer.RemainingTimeInSession, Is.EqualTo(_pomodoroTimer.SessionDuration - _pomodoroTimer.ElapsedTimeInSession),
+                "Remaining time in session should equal session duration minus elapsed time in session after first work phase.");
+
+            Assert.That(_pomodoroTimer.CompletedWorkUnits, Is.EqualTo(1), 
+                "Completed work units should be 1 after first work phase.");
+
+            Assert.That(wasPhaseCompletedInvoked, Is.True, 
+                $"{nameof(PomodoroTimer.PhaseCompleted)} event was not invoked after the phase completed.");
+
+            Assert.That(wasSessionCompletedInvoked, Is.False,
+                $"{nameof(PomodoroTimer.PhaseCompleted)} event should not be invoked unless the session is fully completed.");
+
+            Assert.That(wasPhaseSkippedInvoked, Is.False,
+                $"{nameof(PomodoroTimer.SessionCompleted)} event should not be invoked when the phase completes normally.");
         });
     }
 
     [Test]
-    public async Task ResetSession_ResetsToWorkPhase()
+    public async Task Start_ShouldNotInvokePhaseCompleted_WhenPhaseNotCompleted()
     {
         // Arrange
-        int secondsUntilNextPhase = _pomodoroTimer!.Info.RemainingTimeInCurrentPhase.Seconds;
+        var wasInvoked = false;
+        _pomodoroTimer!.PhaseCompleted += (_, _) => wasInvoked = true;
 
         // Act
-        _pomodoroTimer!.StartActiveTimer();
-        await Task.Delay(secondsUntilNextPhase * 1000 + TestDelayMilliseconds);
-        _pomodoroTimer!.ResetSession();
+        _pomodoroTimer.Start();
+        await Task.Delay(TestDelayMilliseconds);
+
+        // Assert
+        Assert.That(wasInvoked, Is.False, $"{nameof(PomodoroTimer.PhaseCompleted)} event should not be invoked before the phase is completed.");
+    }
+
+    [Test]
+    public async Task Start_ShouldStartLongBreak_WhenWorkUnitsBeforeLongBreakReached()
+    {
+        // Arrange
+        var longBreakDurationSeconds = 5 * ShortBreakDurationSeconds;
+
+        var settings = new PomodoroSettings
+        {
+            WorkDurationSeconds = WorkDurationSeconds,
+            ShortBreakDurationSeconds = ShortBreakDurationSeconds,
+            LongBreakDurationSeconds = longBreakDurationSeconds,
+            TotalWorkUnits = 3,
+            WorkUnitsBeforeLongBreak = 2
+        };
+
+        var secondsToWaitForLongBreak = 2 * WorkDurationSeconds + ShortBreakDurationSeconds;
+        var pomodoroTimer = new PomodoroTimer(Substitute.For<Action<TimeSpan>>(), settings);
+
+        // Act
+        pomodoroTimer.Start();
+        await Task.Delay(1000 * secondsToWaitForLongBreak + TestDelayMilliseconds); // wait for long break to start
+        pomodoroTimer.Stop();
+
+        var currentPhaseDuration = pomodoroTimer.RemainingTimeInCurrentPhase + pomodoroTimer.ElapsedTimeInCurrentPhase;
 
         // Assert
         Assert.Multiple(() =>
         {
-            Assert.That(_pomodoroTimer.Info.CurrentPhase, Is.EqualTo(PomodoroPhase.Work));
-            Assert.That(_pomodoroTimer.Info.RemainingTimeInCurrentPhase, Is.EqualTo(TimeSpan.FromSeconds(WorkDurationSeconds)));
-            Assert.That(_pomodoroTimer.Info.WorkUnitsCompleted, Is.Zero);
-            Assert.That(_pomodoroTimer.Info.IsRunning, Is.False);
-            Assert.That(_pomodoroTimer.Info.ElapsedTimeInCurrentPhase, Is.EqualTo(TimeSpan.Zero));
+            Assert.That(pomodoroTimer.CurrentPhase, Is.EqualTo(PomodoroPhase.LongBreak), 
+                "Current phase should be LongBreak after completing the first work unit.");
+
+            Assert.That(currentPhaseDuration.TotalSeconds, Is.EqualTo(longBreakDurationSeconds), 
+                "Current phase duration should equal long break duration after completing the required work units.");
         });
     }
 
     [Test]
-    public async Task SessionCompleted_IsInvoked_WhenAllWorkUnitsAreCompletedOrLastWorkUnitIsSkipped()
+    public async Task Start_ShouldCompleteSession_WhenSessionCompleted()
     {
         // Arrange
-        bool sessionCompletedInvoked = false;
-        _pomodoroTimer!.SessionCompleted += (_, _) => sessionCompletedInvoked = true;
+        var wasInvoked = false;
+        _pomodoroTimer!.SessionCompleted += (_, _) => wasInvoked = true;
 
         // Act
-        _pomodoroTimer!.StartActiveTimer();
-        await Task.Delay((int)_pomodoroTimer.Info.TotalTimerDuration.TotalMilliseconds + TestDelayMilliseconds);
-
-        // Assert
-        Assert.That(sessionCompletedInvoked, Is.True);
-
-        // Reset for skip test
-        sessionCompletedInvoked = false;
-
-        // Act
-        _pomodoroTimer!.StartActiveTimer();
-        await Task.Delay((int)_pomodoroTimer.Info.TotalTimerDuration.TotalMilliseconds + TestDelayMilliseconds);
-        _pomodoroTimer!.SkipActiveTimer();
-
-        // Assert
-        Assert.That(sessionCompletedInvoked, Is.True);
-    }
-
-    [Test]
-    public async Task SkipActiveTimer_SkipsToNextPhase()
-    {
-        // Act
-        _pomodoroTimer!.StartActiveTimer();
-        await Task.Delay(TestDelayMilliseconds);
-        _pomodoroTimer!.SkipActiveTimer();
-        var elapsedTimeAfterSkip = _pomodoroTimer.Info.ElapsedTimeInCurrentPhase;
+        _pomodoroTimer.Start();
+        await Task.Delay((int)_pomodoroTimer.SessionDuration.TotalMilliseconds + TestDelayMilliseconds);
+        _pomodoroTimer.Stop();
 
         // Assert
         Assert.Multiple(() =>
         {
-            Assert.That(_pomodoroTimer.Info.CurrentPhase, Is.Not.EqualTo(PomodoroPhase.Work));
-            Assert.That(_pomodoroTimer.Info.WorkUnitsCompleted, Is.EqualTo(1));
-            Assert.That(_pomodoroTimer.Info.IsRunning, Is.True);
-            Assert.That(elapsedTimeAfterSkip, Is.EqualTo(TimeSpan.Zero).Within(TimeSpan.FromMilliseconds(100)));
+            Assert.That(_pomodoroTimer.IsRunning, Is.False, "Timer should not be running after session completion.");
+            Assert.That(_pomodoroTimer.ElapsedTimeInSession, Is.EqualTo(_pomodoroTimer.SessionDuration), "Elapsed time in session should equal session duration.");
+            Assert.That(_pomodoroTimer.CompletedWorkUnits, Is.EqualTo(TotalWorkUnits), "Completed work units should equal total work units.");
+            Assert.That(wasInvoked, Is.True, $"{nameof(PomodoroTimer.SessionCompleted)} event was not invoked after the session completed.");
         });
     }
 
     [Test]
-    public async Task StartActiveTimer_DoesNotDoAnything_WhenIsRunningIsTrue()
-    {
-        // Act
-        _pomodoroTimer!.StartActiveTimer();
-        await Task.Delay(TestDelayMilliseconds);
-        _pomodoroTimer!.StartActiveTimer();
-
-        // Assert
-        Assert.That(_pomodoroTimer.Info.ElapsedTimeInCurrentPhase, Is.Not.EqualTo(TimeSpan.Zero));
-    }
-
-    [Test]
-    public void StartActiveTimer_SetsIsRunningToTrue()
-    {
-        _pomodoroTimer!.StartActiveTimer();
-        Assert.That(_pomodoroTimer.Info.IsRunning, Is.True);
-    }
-
-    [Test]
-    public void StopActiveTimer_SetsIsRunningToFalse()
-    {
-        // Act
-        _pomodoroTimer!.StartActiveTimer();
-        _pomodoroTimer.StopActiveTimer();
-
-        // Assert
-        Assert.That(_pomodoroTimer.Info.IsRunning, Is.False);
-    }
-
-    [Test]
-    public async Task StopActiveTimer_StopsTheActiveTimer()
-    {
-        // Act
-        _pomodoroTimer!.StartActiveTimer();
-        _pomodoroTimer.StopActiveTimer();
-        await Task.Delay(TestDelayMilliseconds);
-
-        var elapsedTimeAfterStop = _pomodoroTimer.Info.ElapsedTimeInCurrentPhase;
-        await Task.Delay(TestDelayMilliseconds);
-
-        // Assert
-        Assert.That(_pomodoroTimer.Info.ElapsedTimeInCurrentPhase, Is.EqualTo(elapsedTimeAfterStop));
-    }
-
-    [Test]
-    public void WorkPhaseIsFollowedByBreakPhase()
-    {
-        // Act
-        _pomodoroTimer!.SkipActiveTimer();
-
-        // Assert
-        Assert.That(_pomodoroTimer.Info.CurrentPhase, Is.Not.EqualTo(PomodoroPhase.Work));
-    }
-
-    [Test]
-    public async Task WorkUnitsCompleted_EqualsTotalWorkUnits_WhenSessionCompleted()
-    {
-        // Act
-        _pomodoroTimer!.StartActiveTimer();
-        await Task.Delay((int)_pomodoroTimer.Info.TotalTimerDuration.TotalMilliseconds + TestDelayMilliseconds);
-        // Assert
-        Assert.That(_pomodoroTimer.Info.WorkUnitsCompleted, Is.EqualTo(TotalWorkUnits));
-    }
-
-    [Test]
-    public async Task WorkUnitsCompleted_IsUpdatedWhenTimerPassesToNextPhase()
-    {
-        // Arrange
-        int secondsUntilNextPhase = _pomodoroTimer!.Info.RemainingTimeInCurrentPhase.Seconds;
-
-        // Act
-        _pomodoroTimer!.StartActiveTimer();
-        await Task.Delay(secondsUntilNextPhase * 1000 + TestDelayMilliseconds);
-
-        // Assert
-        Assert.That(_pomodoroTimer.Info.WorkUnitsCompleted, Is.EqualTo(1));
-    }
-
-    [Test]
-    public async Task TickCallback_IsInvoked_WhenStartingTimer()
-    {
-        // Arrange
-        bool wasTickCallbackInvoked = false;
-        var pomodoroTimer = new PomodoroTimer(() => { wasTickCallbackInvoked = true; }, new PomodoroSettings());
-
-        // Act
-        pomodoroTimer.StartActiveTimer();
-        await Task.Delay(TestDelayMilliseconds);
-
-        // Assert
-        Assert.That(wasTickCallbackInvoked, Is.True);
-    }
-
-    [Test]
-    public void TimerInfo_InitializesCorrectly()
-    {
-        // Arrange
-        var info = _pomodoroTimer!.Info;
-
-        // Assert
-        Assert.Multiple(() =>
-        {
-            Assert.That(info.CurrentPhase, Is.EqualTo(PomodoroPhase.Work));
-            Assert.That(info.ElapsedTimeInCurrentPhase, Is.EqualTo(TimeSpan.Zero));
-            Assert.That(info.IsRunning, Is.False);
-            Assert.That(info.LongBreakDuration, Is.EqualTo(LongBreakDurationSeconds));
-            Assert.That(info.ProgressCurrentPhase, Is.EqualTo(0));
-            Assert.That(info.RemainingTimeInCurrentPhase, Is.EqualTo(TimeSpan.FromSeconds(WorkDurationSeconds)));
-            Assert.That(info.Settings.WorkDurationSeconds, Is.EqualTo(WorkDurationSeconds));
-            Assert.That(info.ShortBreakDuration, Is.EqualTo(ShortBreakDurationSeconds));
-            Assert.That(info.TotalElapsedTime, Is.EqualTo(TimeSpan.Zero));
-            Assert.That(info.TotalRemainingTime, Is.EqualTo(info.TotalTimerDuration));
-            Assert.That(info.TotalTimerDuration, Is.EqualTo(TimeSpan.FromSeconds(GetTotalTimerDurationSeconds())));
-            Assert.That(info.TotalWorkUnits, Is.EqualTo(TotalWorkUnits));
-            Assert.That(info.WorkUnitsBeforeLongBreak, Is.EqualTo(WorkUnitsBeforeLongBreak));
-            Assert.That(info.WorkUnitsCompleted, Is.EqualTo(0));
-        });
-    }
-
-    [Test]
-    public async Task TimerInfo_UpdatesCorrectly_AfterStarting()
-    {
-        // Act
-        _pomodoroTimer!.StartActiveTimer();
-        await Task.Delay(TestDelayMilliseconds);
-
-        // Assert
-        var info = _pomodoroTimer.Info;
-        Assert.Multiple(() =>
-        {
-            Assert.That(info.CurrentPhase, Is.EqualTo(PomodoroPhase.Work));
-            Assert.That(info.ElapsedTimeInCurrentPhase, Is.GreaterThan(TimeSpan.Zero));
-            Assert.That(info.IsRunning, Is.True);
-            Assert.That(info.ProgressCurrentPhase, Is.GreaterThan(0));
-            Assert.That(info.RemainingTimeInCurrentPhase, Is.LessThan(TimeSpan.FromSeconds(WorkDurationSeconds)));
-            Assert.That(info.TotalElapsedTime, Is.GreaterThan(TimeSpan.Zero));
-            Assert.That(info.TotalRemainingTime, Is.LessThan(info.TotalTimerDuration));
-            Assert.That(info.WorkUnitsCompleted, Is.EqualTo(0));
-        });
-    }
-
-    [Test]
-    public async Task TimerInfo_ResetsCorrectly()
-    {
-        // Act
-        _pomodoroTimer!.StartActiveTimer();
-        await Task.Delay(TestDelayMilliseconds);
-        _pomodoroTimer.ResetActiveTimer();
-
-        // Assert
-        var info = _pomodoroTimer.Info;
-        Assert.Multiple(() =>
-        {
-            Assert.That(info.CurrentPhase, Is.EqualTo(PomodoroPhase.Work));
-            Assert.That(info.ElapsedTimeInCurrentPhase, Is.EqualTo(TimeSpan.Zero));
-            Assert.That(info.IsRunning, Is.False);
-            Assert.That(info.ProgressCurrentPhase, Is.EqualTo(0));
-            Assert.That(info.RemainingTimeInCurrentPhase, Is.EqualTo(TimeSpan.FromSeconds(WorkDurationSeconds)));
-            Assert.That(info.TotalElapsedTime, Is.EqualTo(TimeSpan.Zero));
-            Assert.That(info.TotalRemainingTime, Is.EqualTo(info.TotalTimerDuration));
-            Assert.That(info.WorkUnitsCompleted, Is.EqualTo(0));
-        });
-    }
-
-    [Test]
-    [TestCase(1, 2, 1, 1, 1, 2)] // 1 work unit, 2 second work duration => 2 s total duration, irresp of other params
-    [TestCase(2, 1, 1, 1, 1, 3)] // 2 work units, 1 second work duration, 1 second break duration => 3 s total duration
-    [TestCase(2, 1, 1, 2, 1, 4)] // 2 work units, 1 second work duration, 2 second long break directly after work => 4 s total duration
-    [TestCase(3, 1, 1, 2, 2, 6)] // 3 work units, 1 second work duration, 1 second short break, 2 second long break after every 2 work units => 6 s total duration
-    [TestCase(6, 5, 2, 3, 3, 41)] // 6 work units, 5 second work duration, 2 second short break, 3 second long break after every 3 work units => 41 s total duration
-    [TestCase(6, 5, 2, 3, 2, 42)] // 6 work units, 5 second work duration, 2 second short break, 3 second long break after every 2 work units => 42 s total duration
-    public void TotalTimerDuration_CalculatesCorrectly_WithDifferentSettings(
-        int totalWorkUnits,
-        int workDurationSeconds,
-        int shortBreakDurationSeconds,
-        int longBreakDurationSeconds,
-        int workUnitsBeforeLongBreak,
-        int expectedTotalDurationSeconds)
+    public async Task Start_ShouldResetSession_AfterCompletedSession()
     {
         // Arrange
         var settings = new PomodoroSettings
         {
-            TotalWorkUnits = totalWorkUnits,
-            WorkDurationSeconds = workDurationSeconds,
-            ShortBreakDurationSeconds = shortBreakDurationSeconds,
-            LongBreakDurationSeconds = longBreakDurationSeconds,
-            WorkUnitsBeforeLongBreak = workUnitsBeforeLongBreak
+            WorkDurationSeconds = WorkDurationSeconds,
+            ShortBreakDurationSeconds = ShortBreakDurationSeconds,
+            LongBreakDurationSeconds = LongBreakDurationSeconds,
+            TotalWorkUnits = 1,
+            WorkUnitsBeforeLongBreak = 1
         };
 
-        var pomodoroTimer = new PomodoroTimer(Substitute.For<Action>(), settings);
+        var pomodoroTimer = new PomodoroTimer(Substitute.For<Action<TimeSpan>>(), settings);
 
         // Act
-        var totalDuration = pomodoroTimer.Info.TotalTimerDuration;
+        pomodoroTimer.Start();
+        await Task.Delay((int)pomodoroTimer.SessionDuration.TotalMilliseconds + TestDelayMilliseconds);
+
+        pomodoroTimer.Start(); // Restart the timer
+        var elapsedTime = pomodoroTimer.ElapsedTimeInSession;
+        var remainingTime = pomodoroTimer.RemainingTimeInSession;
+        var currentPhase = pomodoroTimer.CurrentPhase;
+        var completedWorkUnits = pomodoroTimer.CompletedWorkUnits;
 
         // Assert
-        Assert.That(totalDuration, Is.EqualTo(TimeSpan.FromSeconds(expectedTotalDurationSeconds)));
+        Assert.Multiple(() =>
+        {
+            Assert.That(elapsedTime, Is.EqualTo(TimeSpan.Zero).Within(TestDelayMilliseconds).Milliseconds);
+            Assert.That(remainingTime, Is.EqualTo(pomodoroTimer.SessionDuration).Within(TestDelayMilliseconds).Milliseconds);
+            Assert.That(currentPhase, Is.EqualTo(PomodoroPhase.Work));
+            Assert.That(completedWorkUnits, Is.EqualTo(0));
+        });
+    }
+
+    [Test]
+    public async Task Stop_ShouldStopTimer_WhenRunning()
+    {
+        // Arrange
+        var wasPhaseCompletedInvoked = false;
+        var wasSessionCompletedInvoked = false;
+        var wasPhaseSkippedInvoked = false;
+
+        _pomodoroTimer!.PhaseCompleted += (_, _) => wasPhaseCompletedInvoked = true;
+        _pomodoroTimer.SessionCompleted += (_, _) => wasSessionCompletedInvoked = true;
+        _pomodoroTimer.PhaseSkipped += (_, _) => wasPhaseSkippedInvoked = true;
+
+        // Act
+        _pomodoroTimer.Start();
+        await Task.Delay(TestDelayMilliseconds);
+        _pomodoroTimer.Stop();
+
+        // Assert
+        Assert.Multiple(() =>
+        {
+            Assert.That(_pomodoroTimer.IsRunning, Is.False, 
+                "Timer should not be running after Stop is called.");
+
+            Assert.That(_pomodoroTimer.ElapsedTimeInCurrentPhase, Is.GreaterThan(TimeSpan.Zero), 
+                "Elapsed time in current phase should not be reset after stopping.");
+
+            Assert.That(_pomodoroTimer.ElapsedTimeInSession, Is.GreaterThan(TimeSpan.Zero),
+                "Elapsed time in session should not be reset after stopping.");
+
+            Assert.That(_pomodoroTimer.RemainingTimeInCurrentPhase.TotalSeconds, Is.LessThanOrEqualTo(_pomodoroTimer.Settings.WorkDurationSeconds), 
+                "Remaining time in current phase should be less than or equal to work duration.");
+
+            Assert.That(wasPhaseSkippedInvoked, Is.False, 
+                $"{nameof(PomodoroTimer.PhaseSkipped)} event should not be invoked when stopping the timer.");
+
+            Assert.That(wasPhaseCompletedInvoked, Is.False,
+                $"{nameof(PomodoroTimer.PhaseCompleted)} event should not be invoked when stopping the timer.");
+
+            Assert.That(wasSessionCompletedInvoked, Is.False,
+                $"{nameof(PomodoroTimer.SessionCompleted)} event should not be invoked when stopping the timer.");
+        });
+    }
+
+    [Test]
+    public async Task Stop_ShouldDoNothing_WhenNotRunning()
+    {
+        // Arrange
+        var initialElapsedTime = TimeSpan.Zero;
+
+        // Act
+        _pomodoroTimer!.Start();
+        await Task.Delay(TestDelayMilliseconds);
+        _pomodoroTimer.Stop();
+        initialElapsedTime = _pomodoroTimer.ElapsedTimeInCurrentPhase;
+
+        _pomodoroTimer.Stop(); // Attempt to stop again
+
+        // Assert
+        Assert.Multiple(() =>
+        {
+            Assert.That(_pomodoroTimer.IsRunning, Is.False, 
+                "Timer should not be running after Stop is called.");
+
+            Assert.That(_pomodoroTimer.ElapsedTimeInCurrentPhase, Is.EqualTo(initialElapsedTime), 
+                "Elapsed time in current phase should not change when Stop is called while not running.");
+
+            Assert.That(_pomodoroTimer.RemainingTimeInCurrentPhase.TotalSeconds, Is.EqualTo(_pomodoroTimer.Settings.WorkDurationSeconds - initialElapsedTime.TotalSeconds).Within(0.1).Percent, 
+                "Remaining time in current phase should not change when Stop is called while not running.");
+        });
+    }
+
+    [Test]
+    public async Task ResetSession_ShouldStopTheTimerAndResetAllTimersAndProperties()
+    {
+        // Arrange
+        var settings = new PomodoroSettings
+        {
+            WorkDurationSeconds = WorkDurationSeconds,
+            ShortBreakDurationSeconds = ShortBreakDurationSeconds,
+            LongBreakDurationSeconds = LongBreakDurationSeconds,
+            TotalWorkUnits = 2,
+            WorkUnitsBeforeLongBreak = 2 // Set to 2 to ensure we have a short break after the first work unit
+        };
+
+        _pomodoroTimer = new PomodoroTimer(Substitute.For<Action<TimeSpan>>(), settings);
+
+        var wasPhaseCompletedInvoked = false;
+        var wasSessionCompletedInvoked = false;
+        var wasPhaseSkippedInvoked = false;
+
+        // Act
+        _pomodoroTimer.Start();
+        await Task.Delay(TestDelayMilliseconds + 1000 * _pomodoroTimer.Settings.WorkDurationSeconds); // wait for first work phase to complete
+
+        // Subscribe to events just before resetting the session
+        _pomodoroTimer.PhaseCompleted += (_, _) => wasPhaseCompletedInvoked = true;
+        _pomodoroTimer.SessionCompleted += (_, _) => wasSessionCompletedInvoked = true;
+        _pomodoroTimer.PhaseSkipped += (_, _) => wasPhaseSkippedInvoked = true;
+
+        _pomodoroTimer.ResetSession();
+
+        // Assert
+        Assert.Multiple(() =>
+        {
+            Assert.That(_pomodoroTimer.IsRunning, Is.False, 
+                "Timer should not be running after ResetSession.");
+
+            Assert.That(_pomodoroTimer.ElapsedTimeInCurrentPhase, Is.EqualTo(TimeSpan.Zero), 
+                "Elapsed time in current phase should be reset to zero.");
+
+            Assert.That(_pomodoroTimer.RemainingTimeInCurrentPhase.TotalSeconds, Is.EqualTo(_pomodoroTimer.Settings.WorkDurationSeconds),
+                "Remaining time in current phase should equal work duration after reset.");
+
+            Assert.That(_pomodoroTimer.ElapsedTimeInSession, Is.EqualTo(TimeSpan.Zero), 
+                "Elapsed time in session should be reset to zero.");
+
+            Assert.That(_pomodoroTimer.RemainingTimeInSession, Is.EqualTo(_pomodoroTimer.SessionDuration), 
+                "Remaining time in session should equal session duration after reset.");
+
+            Assert.That(_pomodoroTimer.CompletedWorkUnits, Is.EqualTo(0), 
+                "Completed work units should be reset to zero.");
+
+            Assert.That(_pomodoroTimer.CurrentPhase, Is.EqualTo(PomodoroPhase.Work), 
+                "Current phase should be reset to Work.");
+
+            Assert.That(wasPhaseCompletedInvoked, Is.False,
+                $"{nameof(PomodoroTimer.PhaseCompleted)} event should not be invoked when resetting the session.");
+
+            Assert.That(wasSessionCompletedInvoked, Is.False,
+                $"{nameof(PomodoroTimer.SessionCompleted)} event should not be invoked when resetting the session.");
+
+            Assert.That(wasPhaseSkippedInvoked, Is.False,
+                $"{nameof(PomodoroTimer.PhaseSkipped)} event should not be invoked when resetting the session.");
+        });
+    }
+
+    [Test]
+    public async Task ResetCurrentPhase_ShouldStopTheTimerAndResetCurrentPhase()
+    {
+        // Arrange
+        var settings = new PomodoroSettings
+        {
+            WorkDurationSeconds = WorkDurationSeconds,
+            ShortBreakDurationSeconds = ShortBreakDurationSeconds,
+            LongBreakDurationSeconds = LongBreakDurationSeconds,
+            TotalWorkUnits = 2,
+            WorkUnitsBeforeLongBreak = 2 // Set to 2 to ensure we have a short break after the first work unit
+        };
+
+        _pomodoroTimer = new PomodoroTimer(Substitute.For<Action<TimeSpan>>(), settings);
+
+        var wasPhaseCompletedInvoked = false;
+        var wasSessionCompletedInvoked = false;
+        var wasPhaseSkippedInvoked = false;
+
+        // Act
+        _pomodoroTimer.Start();
+        await Task.Delay(TestDelayMilliseconds + 1000 * _pomodoroTimer.Settings.WorkDurationSeconds); // wait for first work phase to complete
+
+        // Subscribe to events just before resetting the current phase
+        _pomodoroTimer.PhaseCompleted += (_, _) => wasPhaseCompletedInvoked = true;
+        _pomodoroTimer.SessionCompleted += (_, _) => wasSessionCompletedInvoked = true;
+        _pomodoroTimer.PhaseSkipped += (_, _) => wasPhaseSkippedInvoked = true;
+
+        _pomodoroTimer.ResetCurrentPhase();
+
+        // Assert
+        Assert.Multiple(() =>
+        {
+            Assert.That(_pomodoroTimer.IsRunning, Is.False, 
+                "Timer should not be running after ResetCurrentPhase.");
+
+            Assert.That(_pomodoroTimer.CurrentPhase, Is.EqualTo(PomodoroPhase.ShortBreak),
+                $"Current phase should remain {PomodoroPhase.ShortBreak} after resetting current phase.");
+
+            Assert.That(_pomodoroTimer.CompletedWorkUnits, Is.EqualTo(1),
+                "Completed work units should remain 1 after resetting current phase.");
+
+            Assert.That(_pomodoroTimer.ElapsedTimeInCurrentPhase, Is.EqualTo(TimeSpan.Zero), 
+                "Elapsed time in current phase should be reset to zero.");
+
+            Assert.That(_pomodoroTimer.RemainingTimeInCurrentPhase.TotalSeconds, Is.EqualTo(_pomodoroTimer.Settings.ShortBreakDurationSeconds),
+                "Remaining time in current phase should equal short break duration after reset.");
+
+            Assert.That(_pomodoroTimer.ElapsedTimeInSession.TotalSeconds, Is.EqualTo(_pomodoroTimer.Settings.WorkDurationSeconds),
+                "Elapsed time in session should equal work duration after resetting current phase.");
+
+            Assert.That(wasPhaseSkippedInvoked, Is.False, 
+                $"{nameof(PomodoroTimer.PhaseSkipped)} event should not be invoked when resetting the current phase.");
+
+            Assert.That(wasPhaseCompletedInvoked, Is.False,
+                $"{nameof(PomodoroTimer.PhaseCompleted)} event should not be invoked when resetting the current phase.");
+
+            Assert.That(wasSessionCompletedInvoked, Is.False,
+                $"{nameof(PomodoroTimer.SessionCompleted)} event should not be invoked when resetting the current phase.");
+        });
+    }
+
+    [Test]
+    public async Task SkipToNextPhase_ShouldSkipToNextPhase_WhenRunning()
+    {
+        // Arrange
+        var wasPhaseCompletedInvoked = false;
+        var wasSessionCompletedInvoked = false;
+        var wasPhaseSkippedInvoked = false;
+        var isRunning = false;
+
+        _pomodoroTimer!.PhaseCompleted += (_, _) => wasPhaseCompletedInvoked = true;
+        _pomodoroTimer.SessionCompleted += (_, _) => wasSessionCompletedInvoked = true;
+        _pomodoroTimer.PhaseSkipped += (_, _) => wasPhaseSkippedInvoked = true;
+
+        // Act
+        _pomodoroTimer.Start();
+        await Task.Delay(TestDelayMilliseconds);
+
+        _pomodoroTimer.SkipToNextPhase();
+        await Task.Delay(TestDelayMilliseconds);
+
+        isRunning = _pomodoroTimer.IsRunning;
+        _pomodoroTimer.Stop();
+
+        // Assert
+        Assert.Multiple(() =>
+        {
+            Assert.That(isRunning, Is.True, 
+                "Timer should still be running after skipping to next phase.");
+
+            Assert.That(_pomodoroTimer.CurrentPhase, Is.Not.EqualTo(PomodoroPhase.Work), 
+                "Current phase should not be Work after skipping to next phase.");
+
+            Assert.That(_pomodoroTimer.ElapsedTimeInCurrentPhase, Is.EqualTo(TimeSpan.Zero).Within(2 * TestDelayMilliseconds).Milliseconds,
+                "Elapsed time in current phase should be reset to zero after skipping.");
+
+            Assert.That(wasPhaseSkippedInvoked, Is.True, 
+                $"{nameof(PomodoroTimer.PhaseSkipped)} event should be invoked when skipping to next phase.");
+
+            Assert.That(wasPhaseCompletedInvoked, Is.False, 
+                $"{nameof(PomodoroTimer.PhaseCompleted)} event should not be invoked when skipping to next phase.");
+
+            Assert.That(wasSessionCompletedInvoked, Is.False, 
+                $"{nameof(PomodoroTimer.SessionCompleted)} event should not be invoked when skipping to next phase.");
+        });
+    }
+
+    [Test]
+    [TestCase(5, 19)]
+    [TestCase(4, 20)]
+    [TestCase(3, 20)]
+    [TestCase(2, 21)]
+    [TestCase(1, 23)]
+    public void SessionDuration_ShouldReturnTotalDurationOfSession(int workUnitsBeforeLongBreak, int expectedDuration)
+    {
+        // Arrange
+        var settings = new PomodoroSettings
+        {
+            WorkDurationSeconds = 3,
+            ShortBreakDurationSeconds = 1,
+            LongBreakDurationSeconds = 2,
+            TotalWorkUnits = 5,
+            WorkUnitsBeforeLongBreak = workUnitsBeforeLongBreak
+        };
+        _pomodoroTimer = new PomodoroTimer(Substitute.For<Action<TimeSpan>>(), settings);
+
+        // Act
+        var actualDuration = _pomodoroTimer.SessionDuration.TotalSeconds;
+
+        // Assert
+        Assert.That(actualDuration, Is.EqualTo(expectedDuration), 
+            "Session duration should equal the total duration of all work units and breaks.");
     }
 }

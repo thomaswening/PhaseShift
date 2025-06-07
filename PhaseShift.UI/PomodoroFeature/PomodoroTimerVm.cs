@@ -1,4 +1,6 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+﻿using System.Diagnostics;
+
+using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
 using PhaseShift.Core;
@@ -12,20 +14,23 @@ internal partial class PomodoroTimerVm : PageViewModel
     private readonly PomodoroTimer _pomodoroTimer;
 
     [ObservableProperty]
-    private TimeSpan _elapsedTime;
-
-    [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(StartTimerCommand))]
     private bool _isRunning;
 
     [ObservableProperty]
-    private double _progressCurrentPhase;
+    private PomodoroPhase _currentPhase;
 
     [ObservableProperty]
-    private TimeSpan _remainingTime;
+    private double _progressInCurrentPhase;
 
     [ObservableProperty]
-    private TimeSpan _totalElapsedTime;
+    private TimeSpan _remainingTimeInCurrentPhase;
+
+    [ObservableProperty]
+    private TimeSpan _elapsedTimeInCurrentPhase;
+
+    [ObservableProperty]
+    private TimeSpan _elapsedTimeInSession;
 
     [ObservableProperty]
     private int _totalWorkUnits;
@@ -37,16 +42,13 @@ internal partial class PomodoroTimerVm : PageViewModel
     private int _workUnitsCompleted;
 
     [ObservableProperty]
-    private PomodoroPhase _currentPhase;
-
-    [ObservableProperty]
     private bool _shortBreakEqualsLongBreak;
 
     [ObservableProperty]
-    private TimeSpan _totalTimerDuration;
+    private TimeSpan _sessionDuration;
 
     [ObservableProperty]
-    private TimeSpan _totalRemainingTime;
+    private TimeSpan _remainingTimeInSession;
 
 
     public PomodoroTimerVm() : this(null, null) { }
@@ -57,20 +59,21 @@ internal partial class PomodoroTimerVm : PageViewModel
         _dispatcher = dispatcher ?? new DispatcherWrapper(System.Windows.Application.Current.Dispatcher);
 
         settings ??= new PomodoroSettings();
-        _pomodoroTimer = new PomodoroTimer(() => _dispatcher.Invoke(UpdateTimerState), settings);
+        _pomodoroTimer = new PomodoroTimer(_ => _dispatcher.Invoke(UpdateTimerState), settings);
         _pomodoroTimer.PhaseCompleted += OnPhaseCompleted;
+        _pomodoroTimer.SessionCompleted += OnSessionCompleted;
 
-        CurrentPhase = _pomodoroTimer.Info.CurrentPhase;
-        WorkUnitsCompleted = _pomodoroTimer.Info.WorkUnitsCompleted;
-        TotalTimerDuration = _pomodoroTimer.Info.TotalTimerDuration;
+        CurrentPhase = _pomodoroTimer.CurrentPhase;
+        WorkUnitsCompleted = _pomodoroTimer.CompletedWorkUnits;
+        SessionDuration = _pomodoroTimer.SessionDuration;
         UpdateTimerState();
 
-        TotalWorkUnits = _pomodoroTimer.Info.Settings.TotalWorkUnits;
-        WorkUnitsBeforeLongBreak = _pomodoroTimer.Info.Settings.WorkUnitsBeforeLongBreak;
-        ShortBreakEqualsLongBreak = _pomodoroTimer.Info.Settings.LongBreakDurationSeconds == _pomodoroTimer.Info.Settings.ShortBreakDurationSeconds;
+        TotalWorkUnits = _pomodoroTimer.Settings.TotalWorkUnits;
+        WorkUnitsBeforeLongBreak = _pomodoroTimer.Settings.WorkUnitsBeforeLongBreak;
+        ShortBreakEqualsLongBreak = _pomodoroTimer.Settings.LongBreakDurationSeconds == _pomodoroTimer.Settings.ShortBreakDurationSeconds;
     }
 
-    public event EventHandler<PomodoroTimerCompletedEventArgs>? ActiveTimerCompleted;
+    public event EventHandler<PomodoroPhaseCompletedEventArgs>? PomodoroPhaseCompleted;
     public event EventHandler? PomodoroSettingsRequested;
 
     public override string Title => "Pomodoro Timer";
@@ -78,7 +81,7 @@ internal partial class PomodoroTimerVm : PageViewModel
     [RelayCommand]
     public void StopTimer()
     {
-        _pomodoroTimer.StopActiveTimer();
+        _pomodoroTimer.Stop();
         IsRunning = _pomodoroTimer.IsRunning;
     }
 
@@ -90,31 +93,39 @@ internal partial class PomodoroTimerVm : PageViewModel
         PomodoroSettingsRequested?.Invoke(this, EventArgs.Empty);
     }
 
-    private void OnPhaseCompleted(object? sender, bool wasSkipped)
+    private void OnPhaseCompleted(object? sender, EventArgs e) => NotifyPomodoroPhaseCompleted();
+    private void OnSessionCompleted(object? sender, EventArgs e)
     {
-        WorkUnitsCompleted = _pomodoroTimer.Info.WorkUnitsCompleted;
-        IsRunning = _pomodoroTimer.IsRunning;
+        ElapsedTimeInCurrentPhase = TimeSpan.FromSeconds(_pomodoroTimer.Settings.WorkDurationSeconds);
+        RemainingTimeInCurrentPhase = TimeSpan.Zero;
+        ElapsedTimeInSession = _pomodoroTimer.SessionDuration;
+        RemainingTimeInSession = TimeSpan.Zero;
 
-        var oldPhase = CurrentPhase;
-        CurrentPhase = _pomodoroTimer.Info.CurrentPhase;
-
-        var args = new PomodoroTimerCompletedEventArgs(oldPhase, CurrentPhase, WorkUnitsCompleted, TotalWorkUnits, wasSkipped);
-        ActiveTimerCompleted?.Invoke(this, args);
+        NotifyPomodoroPhaseCompleted();
     }
+
+    private void NotifyPomodoroPhaseCompleted()
+    {
+        var args = new PomodoroPhaseCompletedEventArgs(CurrentPhase, WorkUnitsCompleted, TotalWorkUnits);
+        PomodoroPhaseCompleted?.Invoke(this, args);
+    }
+
 
     [RelayCommand]
     private void ResetCurrentPhase()
     {
-        _pomodoroTimer.ResetActiveTimer();
+        _pomodoroTimer.ResetCurrentPhase();
         IsRunning = _pomodoroTimer.IsRunning;
+
+        UpdateTimerState();
     }
 
     [RelayCommand]
     private void ResetSession()
     {
         _pomodoroTimer.ResetSession();
-        WorkUnitsCompleted = _pomodoroTimer.Info.WorkUnitsCompleted;
-        CurrentPhase = _pomodoroTimer.Info.CurrentPhase;
+        WorkUnitsCompleted = _pomodoroTimer.CompletedWorkUnits;
+        CurrentPhase = _pomodoroTimer.CurrentPhase;
         IsRunning = _pomodoroTimer.IsRunning;
 
         UpdateTimerState();
@@ -123,38 +134,32 @@ internal partial class PomodoroTimerVm : PageViewModel
     [RelayCommand]
     private void SkipToNextPhase()
     {
-        _pomodoroTimer.SkipActiveTimer();
-        IsRunning = _pomodoroTimer.IsRunning;
+        _pomodoroTimer.SkipToNextPhase();
+        WorkUnitsCompleted = _pomodoroTimer.CompletedWorkUnits;
+        CurrentPhase = _pomodoroTimer.CurrentPhase;
+
+        UpdateTimerState();
     }
 
     [RelayCommand(CanExecute = nameof(CanStartActiveTimer))]
     private void StartTimer()
     {
-        if (WorkUnitsCompleted >= _pomodoroTimer.Info.Settings.TotalWorkUnits)
-        {
-            _pomodoroTimer.ResetSession();
-        }
-
-        _pomodoroTimer.StartActiveTimer();
+        _pomodoroTimer.Start();
         IsRunning = _pomodoroTimer.IsRunning;
     }
 
     private void UpdateTimerState()
     {
-        RemainingTime = _pomodoroTimer.Info.RemainingTimeInCurrentPhase;
-        ElapsedTime = _pomodoroTimer.Info.ElapsedTimeInCurrentPhase;
-        TotalElapsedTime = _pomodoroTimer.Info.TotalElapsedTime;
-        ProgressCurrentPhase = _pomodoroTimer.Info.ProgressCurrentPhase;
-        TotalRemainingTime = _pomodoroTimer.Info.TotalRemainingTime;
+        ElapsedTimeInCurrentPhase = _pomodoroTimer.ElapsedTimeInCurrentPhase;
+        RemainingTimeInCurrentPhase = _pomodoroTimer.RemainingTimeInCurrentPhase;
+        ElapsedTimeInSession = _pomodoroTimer.ElapsedTimeInSession;
+        RemainingTimeInSession = _pomodoroTimer.RemainingTimeInSession;
+        ProgressInCurrentPhase = _pomodoroTimer.ProgressInCurrentPhase;
+        IsRunning = _pomodoroTimer.IsRunning;
     }
 
     public void UpdateSettings(PomodoroSettings settings)
     {
-        _pomodoroTimer.UpdateSettings(settings);
 
-        TotalTimerDuration = _pomodoroTimer.Info.TotalTimerDuration;
-        ShortBreakEqualsLongBreak = _pomodoroTimer.Info.Settings.LongBreakDurationSeconds == _pomodoroTimer.Info.Settings.ShortBreakDurationSeconds;
-        TotalWorkUnits = _pomodoroTimer.Info.Settings.TotalWorkUnits;
-        WorkUnitsBeforeLongBreak = _pomodoroTimer.Info.Settings.WorkUnitsBeforeLongBreak;
     }
 }

@@ -94,7 +94,7 @@ internal class PomodoroNavigationVmTests
 
         // Act
         _navigationVm.TimerVm.StartTimerCommand.Execute(null);
-        await Task.Delay((int)_navigationVm.TimerVm.TotalTimerDuration.TotalMilliseconds + 200);
+        await Task.Delay((int)_navigationVm.TimerVm.SessionDuration.TotalMilliseconds + 200);
 
         // Assert
         Assert.That(eventInvoked, Is.True);

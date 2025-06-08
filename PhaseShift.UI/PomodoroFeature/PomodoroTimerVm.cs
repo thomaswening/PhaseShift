@@ -39,6 +39,7 @@ internal partial class PomodoroTimerVm : PageViewModel
     private int _workUnitsBeforeLongBreak;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsCompleted))]
     private int _workUnitsCompleted;
 
     [ObservableProperty]
@@ -50,6 +51,7 @@ internal partial class PomodoroTimerVm : PageViewModel
     [ObservableProperty]
     private TimeSpan _remainingTimeInSession;
 
+    public bool IsCompleted => _pomodoroTimer.CompletedWorkUnits >= _pomodoroTimer.Settings.TotalWorkUnits;
 
     public PomodoroTimerVm() : this(null, null) { }
 
@@ -131,7 +133,7 @@ internal partial class PomodoroTimerVm : PageViewModel
         UpdateTimerState();
     }
 
-    [RelayCommand]
+    [RelayCommand(CanExecute = nameof(CanSkipToNextPhase))]
     private void SkipToNextPhase()
     {
         _pomodoroTimer.SkipToNextPhase();
@@ -141,11 +143,15 @@ internal partial class PomodoroTimerVm : PageViewModel
         UpdateTimerState();
     }
 
+    private bool CanSkipToNextPhase() => _pomodoroTimer.CompletedWorkUnits < _pomodoroTimer.Settings.TotalWorkUnits;
+
     [RelayCommand(CanExecute = nameof(CanStartActiveTimer))]
     private void StartTimer()
     {
         _pomodoroTimer.Start();
+
         IsRunning = _pomodoroTimer.IsRunning;
+        WorkUnitsCompleted = _pomodoroTimer.CompletedWorkUnits;
     }
 
     private void UpdateTimerState()

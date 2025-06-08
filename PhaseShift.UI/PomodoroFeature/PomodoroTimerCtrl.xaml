@@ -44,6 +44,23 @@
             <Setter Property="VerticalAlignment"
                     Value="Center" />
         </Style>
+
+        <Style x:Key="SkipToNextPhaseButton" 
+               TargetType="{x:Type Button}"
+               BasedOn="{StaticResource TimerButtonSecondaryBase}">
+
+            <Setter Property="Opacity"
+                    Value="1" />
+
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsCompleted}"
+                             Value="True">
+
+                    <Setter Property="Opacity"
+                            Value="0.3" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
     </UserControl.Resources>
 
     <Grid>
@@ -131,7 +148,7 @@
                 </Button>
 
                 <!--Skip to Next Phase-->
-                <Button Style="{StaticResource TimerButtonSecondaryBase}"
+                <Button Style="{StaticResource SkipToNextPhaseButton}"
                         Command="{Binding SkipToNextPhaseCommand}"
                         ToolTip="Skip to Next Phase">
 

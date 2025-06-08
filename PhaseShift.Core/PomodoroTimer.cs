@@ -183,11 +183,13 @@ public class PomodoroTimer
 
             if (IsCompleted)
             {
+                _currentTimer.Reset();
                 SessionCompleted?.Invoke(this, EventArgs.Empty);
                 return;
             }
         }
 
+        _currentTimer.Reset();
         _currentTimer = GetNextPhaseTimer();
 
         // notify before starting the next phase timer

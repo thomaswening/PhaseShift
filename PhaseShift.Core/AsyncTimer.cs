@@ -1,4 +1,6 @@
-﻿namespace PhaseShift.Core;
+﻿using System.Diagnostics;
+
+namespace PhaseShift.Core;
 
 /// <summary>
 /// Represents an asynchronous timer that executes a specified callback when the countdown finishes
@@ -9,8 +11,11 @@ public class AsyncTimer
     private readonly Action _timerCompletedCallback;
     private readonly int _intervalMilliseconds;
     private readonly AsyncStopwatch _stopwatch;
+    private readonly object _stateLock = new();
+
     private CancellationTokenSource _cancellationTokenSource = new();
     private TimeSpan _duration;
+    private Task? _timerTask;
 
     public AsyncTimer(Action timerCompletedCallback, Action<TimeSpan> tickCallback, TimeSpan duration, int intervalMilliseconds = 10)
     {
@@ -21,10 +26,16 @@ public class AsyncTimer
         Duration = duration;
     }
 
-    public TimeSpan Duration 
-    { 
-        get => _duration; 
-        set => SetDuration(value); 
+    public TimeSpan Duration
+    {
+        get
+        {
+            lock (_stateLock) return _duration;
+        }
+        set
+        {
+            lock (_stateLock) SetDuration(value);
+        }
     }
 
     public TimeSpan ElapsedTime => _stopwatch.ElapsedTime;
@@ -33,38 +44,95 @@ public class AsyncTimer
 
     public TimeSpan RemainingTime => GetRemainingTime();
 
-    public void Reset()
+    public void Start(CancellationToken externalToken = default)
     {
-        _stopwatch.Reset();
-        _cancellationTokenSource.Cancel();
+        lock (_stateLock)
+        {
+            if (IsRunning)
+            {
+                return;
+            }
+
+            var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(_cancellationTokenSource.Token, externalToken);
+            _stopwatch.Start(linkedCts.Token);
+            _timerTask = ExecuteTimerLoopAsync(linkedCts.Token);
+        }
     }
 
-    public void Start()
+    public void Stop(CancellationToken externalToken = default)
     {
-        if (IsRunning)
+        CancellationTokenSource? oldCts = null;
+        Task? oldTimerTask = null;
+
+        lock (_stateLock)
         {
-            return;
+            if (!IsRunning)
+            {
+                // Nothing to cancel
+                _timerTask = null;
+                return;
+            }
+
+            _stopwatch.Stop(externalToken);
+
+            oldCts = _cancellationTokenSource;
+            oldTimerTask = _timerTask;
+
+            _cancellationTokenSource = new CancellationTokenSource();
         }
 
-        while (_cancellationTokenSource.IsCancellationRequested)
+        CancelAndCleanupOldTimer(oldCts, oldTimerTask, externalToken);
+    }
+
+    public void Reset(CancellationToken externalToken = default)
+    {
+        CancellationTokenSource? oldCts = null;
+        Task? oldTimerTask = null;
+
+        lock (_stateLock)
         {
-            Thread.Sleep(10); // CTS Refresh is still in progress on different thread
+            _stopwatch.Reset(externalToken);
+
+            if (!IsRunning)
+            {
+                // Nothing to cancel
+                _timerTask = null;
+                return;
+            }
+
+            oldCts = _cancellationTokenSource;
+            oldTimerTask = _timerTask;
+
+            _timerTask = null;
+            _cancellationTokenSource = new CancellationTokenSource();
         }
+
+        CancelAndCleanupOldTimer(oldCts, oldTimerTask, externalToken);
+    }
+
+    private static void CancelAndCleanupOldTimer(CancellationTokenSource? oldCts, Task? oldTimerTask, CancellationToken externalToken)
+    {
+        oldCts?.Cancel();
 
         try
         {
-            Task.Run(() => StartAsync(_cancellationTokenSource.Token), _cancellationTokenSource.Token);
+            if (oldTimerTask != null &&
+                oldTimerTask.Status != TaskStatus.Created &&
+                oldTimerTask.Status != TaskStatus.WaitingForActivation)
+            {
+                oldTimerTask.Wait(externalToken);
+            }
         }
         catch (OperationCanceledException)
         {
-            ResetCancellationToken();
+            // cancelled externally
         }
-    }
+        finally
+        {
+            oldCts?.Dispose();
+        }
 
-    public void Stop()
-    {
-        _stopwatch.Stop();
-        _cancellationTokenSource.Cancel();
+        oldCts?.Dispose();
     }
 
     private TimeSpan GetRemainingTime()
@@ -79,17 +147,15 @@ public class AsyncTimer
 
         if (IsRunning && value < _stopwatch.ElapsedTime)
         {
-            Stop();
+            Reset();
             _timerCompletedCallback();
         }
 
         _duration = value;
     }
 
-    private async Task StartAsync(CancellationToken cancelToken)
+    private async Task ExecuteTimerLoopAsync(CancellationToken cancelToken)
     {
-        _stopwatch.Start();
-
         while (_stopwatch.IsRunning && _stopwatch.ElapsedTime <= Duration)
         {
             try
@@ -105,18 +171,11 @@ public class AsyncTimer
 
         if (cancelToken.IsCancellationRequested)
         {
-            ResetCancellationToken();
             return;
         }
 
         _timerCompletedCallback();
-        _stopwatch.Reset();
-    }
-
-    private void ResetCancellationToken()
-    {
-        _cancellationTokenSource.Dispose();
-        _cancellationTokenSource = new CancellationTokenSource();
+        _stopwatch.Reset(cancelToken);
     }
 }
 

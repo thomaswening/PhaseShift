@@ -557,7 +557,7 @@ internal class PomodoroTimerTests : BaseTestHelper
     }
 
     [Test]
-    public async Task SkipToNextPhase_ShouldSkipToNextPhase_WhenRunning()
+    public async Task SkipToNextPhase_ShouldSkipToNextPhaseAndKeepRunning_WhenRunning()
     {
         // Arrange
         var wasPhaseCompletedInvoked = false;
@@ -585,11 +585,14 @@ internal class PomodoroTimerTests : BaseTestHelper
             Assert.That(isRunning, Is.True, 
                 "Timer should still be running after skipping to next phase.");
 
-            Assert.That(_pomodoroTimer.CurrentPhase, Is.Not.EqualTo(PomodoroPhase.Work), 
+            Assert.That(_pomodoroTimer.CurrentPhase, Is.Not.EqualTo(PomodoroPhase.Work),
                 "Current phase should not be Work after skipping to next phase.");
 
-            Assert.That(_pomodoroTimer.ElapsedTimeInCurrentPhase, Is.EqualTo(TimeSpan.Zero).Within(2 * TestDelayMilliseconds).Milliseconds,
+            Assert.That(_pomodoroTimer.ElapsedTimeInCurrentPhase.TotalMilliseconds, Is.EqualTo(0.0).Within(2 * TestDelayMilliseconds),
                 "Elapsed time in current phase should be reset to zero after skipping.");
+
+            Assert.That(_pomodoroTimer.ElapsedTimeInSession.TotalMilliseconds, Is.EqualTo(1000 * WorkDurationSeconds).Within(2 * TestDelayMilliseconds),
+                "Elapsed time in session should be greater than zero after skipping to next phase.");
 
             Assert.That(wasPhaseSkippedInvoked, Is.True, 
                 $"{nameof(PomodoroTimer.PhaseSkipped)} event should be invoked when skipping to next phase.");
@@ -598,6 +601,46 @@ internal class PomodoroTimerTests : BaseTestHelper
                 $"{nameof(PomodoroTimer.PhaseCompleted)} event should not be invoked when skipping to next phase.");
 
             Assert.That(wasSessionCompletedInvoked, Is.False, 
+                $"{nameof(PomodoroTimer.SessionCompleted)} event should not be invoked when skipping to next phase.");
+        });
+    }
+
+    [Test]
+    public void SkipToNextPhase_ShouldSkipToNextPhaseAndNotRun_WhenNotRunning()
+    {
+        // Arrange
+        var wasPhaseCompletedInvoked = false;
+        var wasSessionCompletedInvoked = false;
+        var wasPhaseSkippedInvoked = false;
+        var isRunning = false;
+
+        _pomodoroTimer!.PhaseCompleted += (_, _) => wasPhaseCompletedInvoked = true;
+        _pomodoroTimer.SessionCompleted += (_, _) => wasSessionCompletedInvoked = true;
+        _pomodoroTimer.PhaseSkipped += (_, _) => wasPhaseSkippedInvoked = true;
+
+        // Act
+        _pomodoroTimer.SkipToNextPhase();
+        isRunning = _pomodoroTimer.IsRunning;
+
+        // Assert
+        Assert.Multiple(() =>
+        {
+            Assert.That(isRunning, Is.False,
+                "Timer should not be running after skipping to next phase when it wasn't started before.");
+
+            Assert.That(_pomodoroTimer.CurrentPhase, Is.Not.EqualTo(PomodoroPhase.Work),
+                "Current phase should not be Work after skipping to next phase.");
+
+            Assert.That(_pomodoroTimer.ElapsedTimeInCurrentPhase, Is.EqualTo(TimeSpan.Zero),
+                "Elapsed time in current phase should be reset to zero after skipping.");
+
+            Assert.That(wasPhaseSkippedInvoked, Is.True,
+                $"{nameof(PomodoroTimer.PhaseSkipped)} event should be invoked when skipping to next phase.");
+
+            Assert.That(wasPhaseCompletedInvoked, Is.False,
+                $"{nameof(PomodoroTimer.PhaseCompleted)} event should not be invoked when skipping to next phase.");
+
+            Assert.That(wasSessionCompletedInvoked, Is.False,
                 $"{nameof(PomodoroTimer.SessionCompleted)} event should not be invoked when skipping to next phase.");
         });
     }

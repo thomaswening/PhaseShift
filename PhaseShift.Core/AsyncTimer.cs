@@ -1,6 +1,4 @@
-﻿using System.Diagnostics;
-
-namespace PhaseShift.Core;
+﻿namespace PhaseShift.Core;
 
 /// <summary>
 /// Represents an asynchronous timer that executes a specified callback when the countdown finishes

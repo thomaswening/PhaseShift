@@ -30,6 +30,17 @@ public class DispatcherWrapper(Dispatcher dispatcher) : IDispatcher
     /// <inheritdoc cref="Dispatcher.Invoke(Action)"/>
     public void Invoke(Action action)
     {
-        _dispatcher.Invoke(action);
+        try
+        {
+            _dispatcher.Invoke(action);
+        }
+        catch (TaskCanceledException)
+        {
+            // Dispatcher is shutting down, ignore
+        }
+        catch (InvalidOperationException)
+        {
+            // Dispatcher is unavailable (e.g., during shutdown), ignore
+        }
     }
 }

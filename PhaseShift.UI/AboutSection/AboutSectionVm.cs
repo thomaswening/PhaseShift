@@ -4,15 +4,16 @@ using CommunityToolkit.Mvvm.ComponentModel;
 namespace PhaseShift.UI.AboutSection;
 internal partial class AboutSectionVm : ObservableObject
 {
-    public static string AppName => "PhaseShift";
-    public static string AppVersion => "0.3.0";
-    public static string AppDescription => "A stylish productivity timer app for developers. Designed to keep your focus in phase.";
-    public static string Author => "Thomas Wening";
+    public static string AppName => AppConstants.AppName;
+    public static string AppVersion => AppConstants.AppVersion;
+    public static string AppDescription 
+        => "A stylish productivity timer app for developers. Designed to keep your focus in phase."; // must also be changed in csproj
+    public static string Author => "Thomas Wening"; // must also be changed in csproj
     public static string AuthorEmail => "thomaswening94@gmail.com";
     public static string AuthorEmailUri => $"mailto:{AuthorEmail}";
     public static string AuthorWebsite => "https://github.com/thomaswening";
     public static string AuthorLinkedIn => "https://www.linkedin.com/in/thomas-wening-a96aa51b8/";
-    public static string License => "GNU General Public License v3.0";
+    public static string License => "GNU General Public License v3.0"; // must also be changed in csproj
     public static string Acknowledgements => string.Join("\n", _dependencies);
 
     private static readonly List<string> _dependencies =

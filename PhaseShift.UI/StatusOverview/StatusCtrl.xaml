@@ -130,7 +130,7 @@
                 <TextBlock>
                     <Run Text="{Binding PomodoroTimerVm.CurrentPhase, Converter={StaticResource PhaseName}}" />
                     <Run Text=" (" />
-                    <Run Text="{Binding PomodoroTimerVm.RemainingTime, Converter={StaticResource TimeSpan}}" />
+                    <Run Text="{Binding PomodoroTimerVm.RemainingTimeInCurrentPhase, Converter={StaticResource TimeSpan}}" />
                     <Run Text=")" />
                 </TextBlock>
             </StackPanel>

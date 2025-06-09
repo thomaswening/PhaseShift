@@ -9,7 +9,7 @@ internal abstract class BaseTestHelper
     protected const int WorkDurationSeconds = 1;
     protected const int WorkUnitsBeforeLongBreak = 1;
 
-    protected static int TotalTimerDurationSeconds => GetTotalTimerDurationSeconds();
+    protected static int SessionDuration => GetTotalTimerDurationSeconds();
 
     protected static int GetTotalTimerDurationSeconds()
     {

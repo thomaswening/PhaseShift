@@ -7,7 +7,11 @@ namespace PhaseShift.Core.Tests;
 [TestFixture]
 internal class AsyncTimerTests
 {
+    private const int IntervalMilliseconds = 10;
+    private const int TestDelayMilliseconds = 2 * IntervalMilliseconds;
+
     private const int CountdownDurationMilliseconds = 1000;
+
     private Action? _countdownFinishedCallback;
     private Action<TimeSpan>? _tickCallback;
     private AsyncTimer? _asyncTimer;
@@ -21,131 +25,250 @@ internal class AsyncTimerTests
         _asyncTimer = new AsyncTimer(
             _countdownFinishedCallback,
             _tickCallback,
-            TimeSpan.FromMilliseconds(CountdownDurationMilliseconds));
+            TimeSpan.FromMilliseconds(CountdownDurationMilliseconds),
+            IntervalMilliseconds);
     }
 
     [Test]
-    public async Task Start_ShouldInvokeTickCallback()
+    public async Task Start_ShouldStartTheTimer()
     {
         // Arrange
-        _tickCallback!.Invoke(Arg.Any<TimeSpan>());
+        var wasTickCalled = false;
+        var wasCountdownFinishedCalled = false;
+        var elapsedTime = TimeSpan.Zero;
+
+        void tickHandler(TimeSpan elapsed)
+        {
+            wasTickCalled = true;
+            elapsedTime = elapsed;
+        }
+
+        void countdownFinishedHandler()
+        {
+            wasCountdownFinishedCalled = true;
+        }
+
+        _asyncTimer = new AsyncTimer(
+            countdownFinishedHandler, 
+            tickHandler, 
+            TimeSpan.FromMilliseconds(CountdownDurationMilliseconds), 
+            IntervalMilliseconds);
 
         // Act
-        _asyncTimer!.Start();
-        await Task.Delay(50); // Allow some time for the async handler to be invoked
-        _asyncTimer.Stop();
+        _asyncTimer.Start();
+        await Task.Delay(TestDelayMilliseconds);
 
         // Assert
-        _tickCallback.Received().Invoke(Arg.Any<TimeSpan>());
+        Assert.Multiple(() =>
+        {
+            Assert.That(_asyncTimer.IsRunning, Is.True,
+                "Timer should be running after Start is called.");
+
+            Assert.That(wasTickCalled, Is.True,
+                "Tick handler should be called at least once after starting the timer.");
+
+            Assert.That(wasCountdownFinishedCalled, Is.False,
+                "Countdown finished handler should not be called unless the countdown completes.");
+
+            Assert.That(elapsedTime.TotalMilliseconds, Is.GreaterThan(IntervalMilliseconds),
+                "Elapsed time should be greater than the interval after starting the timer.");
+        });
     }
 
     [Test]
-    public void Stop_ShouldStopTheTimer()
+    public async Task Start_ShouldDoNothing_WhenCalledTwice()
     {
         // Act
         _asyncTimer!.Start();
-        _asyncTimer.Stop();
+        await Task.Delay(TestDelayMilliseconds);
+
+        _asyncTimer.Start();
 
         // Assert
-        Assert.That(_asyncTimer.IsRunning, Is.False);
+        Assert.Multiple(() =>
+        {
+            Assert.That(_asyncTimer.IsRunning, Is.True,
+                "Timer should still be running after calling Start again.");
+
+            Assert.That(_asyncTimer.ElapsedTime, Is.GreaterThan(TimeSpan.Zero),
+                "Elapsed time should still be greater than zero after calling Start again.");
+        });
     }
 
     [Test]
-    public void Reset_ShouldResetElapsedTime()
+    public async Task Start_ShouldCompleteTimer_WhenCountdownFinishes()
+    {
+        // Arrange
+        _asyncTimer!.Start();
+        await Task.Delay(CountdownDurationMilliseconds + IntervalMilliseconds);
+
+        // Assert
+        Assert.Multiple(() =>
+        {
+            Assert.That(_asyncTimer.IsRunning, Is.False,
+                "Timer should not be running after the countdown finishes.");
+
+            Assert.That(_asyncTimer.ElapsedTime, Is.EqualTo(TimeSpan.Zero),
+                "Elapsed time should be zero after the countdown finishes.");
+
+            _countdownFinishedCallback!.Received(1).Invoke();
+        });
+    }
+
+    [Test]
+    public async Task Stop_ShouldStopTheTimer()
     {
         // Act
         _asyncTimer!.Start();
-        Task.Delay(50).Wait(); // Allow some time to pass
+        await Task.Delay(TestDelayMilliseconds);
+
+        _asyncTimer.Stop();
+
+        // Assert
+        Assert.Multiple(() =>
+        {
+            Assert.That(_asyncTimer.IsRunning, Is.False,
+                "Timer should not be running after Stop is called.");
+
+            Assert.That(_asyncTimer.ElapsedTime, Is.GreaterThan(TimeSpan.Zero),
+                "Elapsed time should be greater than zero after stopping the timer.");
+        });
+    }
+
+    [Test]
+    public async Task Stop_ShoulDoNothing_WhenCalledTwice()
+    {
+        // Act
+        _asyncTimer!.Start();
+        await Task.Delay(TestDelayMilliseconds);
+
+        _asyncTimer.Stop();
+        await Task.Delay(TestDelayMilliseconds);
+
+        _asyncTimer.Stop(); // Call Stop again
+
+        // Assert
+        Assert.Multiple(() =>
+        {
+            Assert.That(_asyncTimer.IsRunning, Is.False,
+                "Timer should still not be running after calling Stop again.");
+
+            Assert.That(_asyncTimer.ElapsedTime, Is.GreaterThan(TimeSpan.Zero),
+                "Elapsed time should still be greater than zero after calling Stop again.");
+        });
+    }
+
+    [Test]
+    public async Task Reset_ShouldResetTheTimer()
+    {
+        // Arrange
+        _asyncTimer!.Start();
+        await Task.Delay(TestDelayMilliseconds);
+
         _asyncTimer.Reset();
 
         // Assert
-        Assert.That(_asyncTimer.ElapsedTime, Is.EqualTo(TimeSpan.Zero));
+        Assert.Multiple(() =>
+        {
+            Assert.That(_asyncTimer.IsRunning, Is.False,
+                "Timer should not be running after Reset is called.");
+
+            Assert.That(_asyncTimer.ElapsedTime, Is.EqualTo(TimeSpan.Zero),
+                "Elapsed time should be zero after Reset is called.");
+
+            Assert.That(_asyncTimer.RemainingTime, Is.EqualTo(_asyncTimer.Duration),
+                "Remaining time should equal the initial duration after Reset is called.");
+        });
     }
 
     [Test]
-    public void Reset_ShouldInvokeTickCallbackWithZeroElapsedTime()
+    public void SetDuration_ShouldUpdateTheDuration()
     {
         // Arrange
-        _tickCallback!.Invoke(Arg.Any<TimeSpan>());
+        var newDuration = TimeSpan.FromSeconds(500);
+        _asyncTimer!.Duration = newDuration;
 
         // Act
-        _asyncTimer!.Start();
-        Task.Delay(50).Wait(); // Allow some time to pass
-        _asyncTimer.Reset();
+        var remainingTime = _asyncTimer.RemainingTime;
 
         // Assert
-        _tickCallback.Received().Invoke(TimeSpan.Zero);
+        Assert.That(remainingTime, Is.EqualTo(newDuration),
+            "Remaining time should equal the new duration after SetDuration is called.");
     }
 
     [Test]
-    public async Task IsRunning_ShouldBeTrueWhenStarted()
-    {
-        // Act
-        _asyncTimer!.Start();
-        await Task.Delay(50); // Allow some time for the async handler to be invoked
-
-        // Assert
-        Assert.That(_asyncTimer.IsRunning, Is.True);
-    }
-
-    [Test]
-    public void IsRunning_ShouldBeFalseWhenStopped()
-    {
-        // Act
-        _asyncTimer!.Start();
-        _asyncTimer.Stop();
-
-        // Assert
-        Assert.That(_asyncTimer.IsRunning, Is.False);
-    }
-
-    [Test]
-    public async Task Timer_ShouldInvokeCountdownFinishedCallback()
+    public async Task SetDuration_ShouldCompleteTimer_WhenNewDurationLessThanElapsedTime()
     {
         // Arrange
-        _countdownFinishedCallback!.Invoke();
+        var newDuration = TimeSpan.FromMilliseconds(CountdownDurationMilliseconds / 2);
+        var wasCountdownFinishedCalled = false;
+
+        void countdownFinishedHandler()
+        {
+            wasCountdownFinishedCalled = true;
+        }
+
+        _asyncTimer = new AsyncTimer(
+            countdownFinishedHandler,
+            _tickCallback!,
+            TimeSpan.FromMilliseconds(CountdownDurationMilliseconds),
+            IntervalMilliseconds);
 
         // Act
-        _asyncTimer!.Start();
-        await Task.Delay(CountdownDurationMilliseconds + 100); // Allow enough time for the countdown to finish
+        _asyncTimer.Start();
+        await Task.Delay(CountdownDurationMilliseconds / 2 + TestDelayMilliseconds);
+        _asyncTimer.Duration = newDuration;
 
         // Assert
-        _countdownFinishedCallback.Received().Invoke();
+        Assert.Multiple(() =>
+        {
+            Assert.That(_asyncTimer.IsRunning, Is.False,
+                "Timer should not be running after setting a new duration that is less than elapsed time.");
+
+            Assert.That(_asyncTimer.ElapsedTime, Is.EqualTo(TimeSpan.Zero),
+                "Elapsed time should be reset to zero after setting a new duration that is less than elapsed time.");
+
+            Assert.That(wasCountdownFinishedCalled, Is.True,
+                "Countdown finished handler should be called when the new duration is less than elapsed time.");
+        });
     }
 
-    [Test]
-    public async Task ElapsedTime_ShouldBeZeroWhenCountdownFinished()
+    [Test, CancelAfter(60_000)]
+    public void AsyncTimer_ShouldBeThreadSafe_WhenUnderStress(CancellationToken token)
     {
-        // Act
-        _asyncTimer!.Start();
-        await Task.Delay(CountdownDurationMilliseconds + 100); // Allow enough time for the countdown to finish
+        var successfulIterations = 0;
+        var parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount };
 
-        // Assert
-        Assert.That(_asyncTimer.ElapsedTime, Is.EqualTo(TimeSpan.Zero));
-    }
+        try
+        {
+            Parallel.For(0, 1_000_000, parallelOptions, i =>
+            {
+                switch (i % 3)
+                {
+                    case 0:
+                        _asyncTimer!.Start(token);
+                        break;
+                    case 1:
+                        _asyncTimer!.Stop(token);
+                        break;
+                    case 2:
+                        _asyncTimer!.Reset(token);
+                        break;
+                }
 
-    [Test]
-    public async Task ElapsedTime_ShouldIncrease_AfterStarting()
-    {
-        // Act
-        _asyncTimer!.Start();
-        await Task.Delay(50); // Allow some time to pass
-        var elapsedTime = _asyncTimer.ElapsedTime;
+                token.ThrowIfCancellationRequested();
+                Interlocked.Increment(ref successfulIterations);
+            });
+        }
+        catch (OperationCanceledException)
+        {
+            Assert.Fail($"{nameof(AsyncTimer)} operations timed out after {successfulIterations} successful iterations under stress.");
+        }
+        catch (Exception ex)
+        {
+            Assert.Fail($"{nameof(AsyncTimer)} operations failed after {successfulIterations} successful iterations under stress: {ex.Message}");
+        }
 
-        // Assert
-        Assert.That(elapsedTime, Is.GreaterThan(TimeSpan.Zero));
-    }
-
-    [Test]
-    public async Task ElapsedTime_ShouldNotBeZero_AfterPausing()
-    {
-        // Act
-        _asyncTimer!.Start();
-        await Task.Delay(100); // Allow some time to pass
-        _asyncTimer.Stop();
-        var elapsedTime = _asyncTimer.ElapsedTime;
-
-        // Assert
-        Assert.That(elapsedTime, Is.GreaterThan(TimeSpan.Zero));
+        Assert.Pass($"{nameof(AsyncTimer)} operations completed under stress.");
     }
 }

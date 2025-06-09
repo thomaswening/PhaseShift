@@ -20,7 +20,7 @@ internal partial class PomodoroNavigationVm : PageViewModel
 
     public override string Title => CurrentViewModel.Title;
 
-    public event EventHandler<PomodoroTimerCompletedEventArgs>? TimerCompleted;
+    public event EventHandler<PomodoroPhaseCompletedEventArgs>? TimerCompleted;
     public event EventHandler? StatusChanged;
 
     public PomodoroNavigationVm(IDispatcher? dispatcher = null)
@@ -40,7 +40,7 @@ internal partial class PomodoroNavigationVm : PageViewModel
     private PomodoroTimerVm CreatePomodoroTimerVm(IDispatcher dispatcher, PomodoroSettings? settings = null)
     {
         var timerVm = new PomodoroTimerVm(settings, dispatcher);
-        timerVm.ActiveTimerCompleted += OnActiveTimerCompleted;
+        timerVm.PomodoroPhaseCompleted += OnActiveTimerCompleted;
         timerVm.PomodoroSettingsRequested += OnPomodoroSettingsRequested;
         timerVm.PropertyChanged += OnPropertyChanged;
         return timerVm;
@@ -50,13 +50,13 @@ internal partial class PomodoroNavigationVm : PageViewModel
     {
         if (e.PropertyName == nameof(PomodoroTimerVm.IsRunning)
             || e.PropertyName == nameof(PomodoroTimerVm.CurrentPhase)
-            || e.PropertyName == nameof(PomodoroTimerVm.RemainingTime))
+            || e.PropertyName == nameof(PomodoroTimerVm.RemainingTimeInCurrentPhase))
         {
             StatusChanged?.Invoke(this, EventArgs.Empty);
         }
     }
 
-    private void OnActiveTimerCompleted(object? sender, PomodoroTimerCompletedEventArgs e)
+    private void OnActiveTimerCompleted(object? sender, PomodoroPhaseCompletedEventArgs e)
     {
         TimerCompleted?.Invoke(sender, e);
     }

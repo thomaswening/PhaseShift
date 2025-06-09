@@ -9,96 +9,128 @@ namespace PhaseShift.Core;
 /// <param name="intervalMilliseconds">The interval in milliseconds at which the callback is executed. Default is 10 milliseconds.</param>
 public class AsyncStopwatch(Action<TimeSpan> tickHandler, int intervalMilliseconds = 10)
 {
-    private readonly Action<TimeSpan> _tickHandler = tickHandler;
     private readonly int _intervalMilliseconds = intervalMilliseconds;
+    private readonly object _stateLock = new();
     private readonly Stopwatch _stopwatch = new();
+    private readonly Action<TimeSpan> _tickHandler = tickHandler;
     private CancellationTokenSource _cancellationTokenSource = new();
+    private Task? _tickLoopTask;
 
     public TimeSpan ElapsedTime => _stopwatch.Elapsed;
+
     public bool IsRunning { get; private set; }
-
-    /// <summary>
-    /// Resets the stopwatch and invokes the callback with the reset elapsed time.
-    /// </summary>
-    public void Reset()
-    {
-        _stopwatch.Reset();
-        _cancellationTokenSource.Cancel();
-        _tickHandler(_stopwatch.Elapsed);
-
-        IsRunning = false;
-    }
 
     /// <summary>
     /// Starts the stopwatch and begins executing the callback at the specified intervals.
     /// </summary>
-    public void Start()
+    public void Start(CancellationToken externalToken = default)
     {
-        if (IsRunning)
+        lock (_stateLock)
         {
-            return;
-        }
+            if (IsRunning)
+            {
+                return;
+            }
 
-        IsRunning = true;
-        try
-        {
-            Task.Run(() => StartAsync(_cancellationTokenSource.Token), _cancellationTokenSource.Token).ConfigureAwait(false);
-        }
-        catch (OperationCanceledException)
-        {
-            ResetCancellationToken();
-        }
-    }
+            IsRunning = true;
 
-    private void ResetCancellationToken()
-    {
-        _cancellationTokenSource?.Dispose();
-        _cancellationTokenSource = new CancellationTokenSource();
+            var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(_cancellationTokenSource.Token, externalToken);
+
+            _stopwatch.Start();
+            _tickLoopTask = ExecuteTickLoopAsync(linkedCts.Token);
+        }
     }
 
     /// <summary>
     /// Stops the stopwatch and cancels the execution of the callback.
     /// </summary>
-    public void Stop()
+    public void Stop(CancellationToken externalToken = default)
     {
-        _stopwatch.Stop();
-        _cancellationTokenSource.Cancel();
-        IsRunning = false;
-    }
+        Task? oldTickLoopTask;
+        CancellationTokenSource? oldCts;
 
-    private async Task StartAsync(CancellationToken cancelToken)
-    {
-        _stopwatch.Start();
-
-        while (!cancelToken.IsCancellationRequested)
+        lock (_stateLock)
         {
-            // Don't await the task to prevent the stopwatch from being stopped
-            // granted, the handler should execute faster than the tick interval!
+            oldTickLoopTask = _tickLoopTask;
+            oldCts = _cancellationTokenSource;
 
-            Task.Run(InvokeTickHandler, CancellationToken.None).ConfigureAwait(false);
-
-            try
-            {
-                await Task.Delay(_intervalMilliseconds, cancelToken).ConfigureAwait(false);
-            }
-            catch (TaskCanceledException)
-            {
-                // Stopwatch was stopped, do nothing
-            }
+            _cancellationTokenSource = new CancellationTokenSource();
+            _tickLoopTask = null;
+            IsRunning = false;
         }
 
-        ResetCancellationToken();
+        CancelAndCleanupOldTickLoop(oldTickLoopTask, oldCts, externalToken);
+
+        lock (_stateLock)
+        {
+            _stopwatch.Stop();
+        }
     }
 
-    private void InvokeTickHandler()
+    /// <summary>
+    /// Resets the stopwatch and invokes the callback with the reset elapsed time.
+    /// </summary>
+    public void Reset(CancellationToken externalToken = default)
     {
+        Task? oldTickLoopTask;
+        CancellationTokenSource? oldCts;
+
+        lock (_stateLock)
+        {
+
+            oldCts = _cancellationTokenSource;
+            oldTickLoopTask = _tickLoopTask;
+
+            _tickLoopTask = null;
+            _cancellationTokenSource = new CancellationTokenSource();
+            IsRunning = false;
+        }
+
+        CancelAndCleanupOldTickLoop(oldTickLoopTask, oldCts, externalToken);
+
+        lock (_stateLock)
+        {
+            _stopwatch.Reset();
+            _tickHandler(_stopwatch.Elapsed);
+        }
+    }
+
+    private static void CancelAndCleanupOldTickLoop(Task? oldTickLoopTask, CancellationTokenSource? oldCts, CancellationToken externalToken)
+    {
+        oldCts?.Cancel();
+
         try
         {
-            _tickHandler(_stopwatch.Elapsed);
+            if (oldTickLoopTask != null &&
+                oldTickLoopTask.Status != TaskStatus.Created &&
+                oldTickLoopTask.Status != TaskStatus.WaitingForActivation)
+            {
+                oldTickLoopTask.Wait(externalToken);
+            }
         }
         catch (OperationCanceledException)
         {
-            // do nothing, user cancelled
+            // cancelled externally
+        }
+        finally
+        {
+            oldCts?.Dispose();
+        }
+    }
+
+    private async Task ExecuteTickLoopAsync(CancellationToken cancelToken)
+    {
+        while (!cancelToken.IsCancellationRequested)
+        {
+            try
+            {
+                await Task.Run(() => _tickHandler(_stopwatch.Elapsed), CancellationToken.None).ConfigureAwait(false);
+                await Task.Delay(_intervalMilliseconds, cancelToken).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                break;
+            }
         }
     }
 }

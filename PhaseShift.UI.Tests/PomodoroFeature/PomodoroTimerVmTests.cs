@@ -76,10 +76,9 @@ internal class PomodoroTimerVmTests
         bool phaseCompletedInvoked = false;
         bool phaseWasSkipped = false;
 
-        _pomodoroTimerVm!.ActiveTimerCompleted += (_, args) =>
+        _pomodoroTimerVm!.PomodoroPhaseCompleted += (_, args) =>
         {
             phaseCompletedInvoked = true;
-            phaseWasSkipped = args.WasSkipped;
         };
 
         // Act
@@ -95,28 +94,26 @@ internal class PomodoroTimerVmTests
     }
 
     [Test]
-    public async Task PhaseCompleted_IsInvoked_WhenPhaseIsSkipped()
+    public async Task PhaseCompleted_IsNotInvoked_WhenPhaseIsSkipped()
     {
         // Arrange
-        bool phaseCompletedInvoked = false;
-        bool phaseWasSkipped = false;
+        var phaseCompletedInvoked = false;
 
-        _pomodoroTimerVm!.ActiveTimerCompleted += (_, args) =>
+        _pomodoroTimerVm!.PomodoroPhaseCompleted += (_, args) =>
         {
             phaseCompletedInvoked = true;
-            phaseWasSkipped = args.WasSkipped;
         };
 
         // Act
         _pomodoroTimerVm.StartTimerCommand.Execute(null);
         await Task.Delay(TestDelayMilliseconds);
+
         _pomodoroTimerVm.SkipToNextPhaseCommand.Execute(null);
 
         // Assert
         Assert.Multiple(() =>
         {
-            Assert.That(phaseCompletedInvoked, Is.True);
-            Assert.That(phaseWasSkipped, Is.True);
+            Assert.That(phaseCompletedInvoked, Is.False);
         });
     }
 
@@ -125,7 +122,7 @@ internal class PomodoroTimerVmTests
     {
         // Arrange
         bool phaseCompletedInvoked = false;
-        _pomodoroTimerVm!.ActiveTimerCompleted += (_, _) => phaseCompletedInvoked = true;
+        _pomodoroTimerVm!.PomodoroPhaseCompleted += (_, _) => phaseCompletedInvoked = true;
 
         // Act
         _pomodoroTimerVm.StartTimerCommand.Execute(null);
@@ -151,7 +148,7 @@ internal class PomodoroTimerVmTests
     public async Task ResetCurrentPhase_ResetsActiveTimer()
     {
         // Arrange
-        TimeSpan activeTimerDuration = _pomodoroTimerVm!.RemainingTime;
+        TimeSpan activeTimerDuration = _pomodoroTimerVm!.RemainingTimeInCurrentPhase;
 
         // Act
         _pomodoroTimerVm.StartTimerCommand.Execute(null);
@@ -162,8 +159,8 @@ internal class PomodoroTimerVmTests
         // Assert
         Assert.Multiple(() =>
         {
-            Assert.That(_pomodoroTimerVm.ElapsedTime, Is.EqualTo(TimeSpan.Zero));
-            Assert.That(_pomodoroTimerVm.RemainingTime, Is.EqualTo(activeTimerDuration));
+            Assert.That(_pomodoroTimerVm.ElapsedTimeInCurrentPhase, Is.EqualTo(TimeSpan.Zero));
+            Assert.That(_pomodoroTimerVm.RemainingTimeInCurrentPhase, Is.EqualTo(activeTimerDuration));
             Assert.That(_pomodoroTimerVm.IsRunning, Is.False);
             Assert.That(_pomodoroTimerVm.CurrentPhase, Is.EqualTo(PomodoroPhase.Work));
         });
@@ -173,7 +170,7 @@ internal class PomodoroTimerVmTests
     public async Task ResetSession_ResetsToWorkPhase()
     {
         // Arrange
-        int secondsUntilNextPhase = _pomodoroTimerVm!.RemainingTime.Seconds;
+        int secondsUntilNextPhase = _pomodoroTimerVm!.RemainingTimeInCurrentPhase.Seconds;
 
         // Act
         _pomodoroTimerVm.StartTimerCommand.Execute(null);
@@ -184,10 +181,10 @@ internal class PomodoroTimerVmTests
         Assert.Multiple(() =>
         {
             Assert.That(_pomodoroTimerVm.CurrentPhase, Is.EqualTo(PomodoroPhase.Work));
-            Assert.That(_pomodoroTimerVm.RemainingTime, Is.EqualTo(TimeSpan.FromSeconds(WorkDurationSeconds)));
+            Assert.That(_pomodoroTimerVm.RemainingTimeInCurrentPhase, Is.EqualTo(TimeSpan.FromSeconds(WorkDurationSeconds)));
             Assert.That(_pomodoroTimerVm.WorkUnitsCompleted, Is.Zero);
             Assert.That(_pomodoroTimerVm.IsRunning, Is.False);
-            Assert.That(_pomodoroTimerVm.ElapsedTime, Is.EqualTo(TimeSpan.Zero));
+            Assert.That(_pomodoroTimerVm.ElapsedTimeInCurrentPhase, Is.EqualTo(TimeSpan.Zero));
         });
     }
 
@@ -196,11 +193,11 @@ internal class PomodoroTimerVmTests
     {
         // Arrange
         bool sessionCompletedInvoked = false;
-        _pomodoroTimerVm!.ActiveTimerCompleted += (_, _) => sessionCompletedInvoked = true;
+        _pomodoroTimerVm!.PomodoroPhaseCompleted += (_, _) => sessionCompletedInvoked = true;
 
         // Act
         _pomodoroTimerVm.StartTimerCommand.Execute(null);
-        await Task.Delay((int)_pomodoroTimerVm.TotalTimerDuration.TotalMilliseconds + TestDelayMilliseconds);
+        await Task.Delay((int)_pomodoroTimerVm.SessionDuration.TotalMilliseconds + TestDelayMilliseconds);
 
         // Assert
         Assert.That(sessionCompletedInvoked, Is.True);
@@ -211,11 +208,11 @@ internal class PomodoroTimerVmTests
     {
         // Arrange
         bool sessionCompletedInvoked = false;
-        _pomodoroTimerVm!.ActiveTimerCompleted += (_, _) => sessionCompletedInvoked = true;
+        _pomodoroTimerVm!.PomodoroPhaseCompleted += (_, _) => sessionCompletedInvoked = true;
 
         // Act
         _pomodoroTimerVm.StartTimerCommand.Execute(null);
-        await Task.Delay((int)_pomodoroTimerVm.TotalTimerDuration.TotalMilliseconds + TestDelayMilliseconds - WorkDurationSeconds * 1000 + TestDelayMilliseconds);
+        await Task.Delay((int)_pomodoroTimerVm.SessionDuration.TotalMilliseconds + TestDelayMilliseconds - WorkDurationSeconds * 1000 + TestDelayMilliseconds);
         _pomodoroTimerVm.SkipToNextPhaseCommand.Execute(null);
 
         // Assert
@@ -229,7 +226,7 @@ internal class PomodoroTimerVmTests
         _pomodoroTimerVm!.StartTimerCommand.Execute(null);
         await Task.Delay(TestDelayMilliseconds);
         _pomodoroTimerVm.SkipToNextPhaseCommand.Execute(null);
-        var elapsedTimeAfterSkip = _pomodoroTimerVm.ElapsedTime;
+        var elapsedTimeAfterSkip = _pomodoroTimerVm.ElapsedTimeInCurrentPhase;
 
         // Assert
         Assert.Multiple(() =>
@@ -250,7 +247,7 @@ internal class PomodoroTimerVmTests
         _pomodoroTimerVm.StartTimerCommand.Execute(null);
 
         // Assert
-        Assert.That(_pomodoroTimerVm.ElapsedTime, Is.Not.EqualTo(TimeSpan.Zero));
+        Assert.That(_pomodoroTimerVm.ElapsedTimeInCurrentPhase, Is.Not.EqualTo(TimeSpan.Zero));
     }
 
     [Test]
@@ -279,11 +276,11 @@ internal class PomodoroTimerVmTests
         _pomodoroTimerVm.StopTimerCommand.Execute(null);
         await Task.Delay(TestDelayMilliseconds);
 
-        var elapsedTimeAfterStop = _pomodoroTimerVm.ElapsedTime;
+        var elapsedTimeAfterStop = _pomodoroTimerVm.ElapsedTimeInCurrentPhase;
         await Task.Delay(TestDelayMilliseconds);
 
         // Assert
-        Assert.That(_pomodoroTimerVm.ElapsedTime, Is.EqualTo(elapsedTimeAfterStop));
+        Assert.That(_pomodoroTimerVm.ElapsedTimeInCurrentPhase, Is.EqualTo(elapsedTimeAfterStop));
     }
 
     [Test]
@@ -301,7 +298,7 @@ internal class PomodoroTimerVmTests
     {
         // Act
         _pomodoroTimerVm!.StartTimerCommand.Execute(null);
-        await Task.Delay((int)_pomodoroTimerVm.TotalTimerDuration.TotalMilliseconds + TestDelayMilliseconds);
+        await Task.Delay((int)_pomodoroTimerVm.SessionDuration.TotalMilliseconds + TestDelayMilliseconds);
 
         // Assert
         Assert.That(_pomodoroTimerVm.WorkUnitsCompleted, Is.EqualTo(TotalWorkUnits));
@@ -311,7 +308,7 @@ internal class PomodoroTimerVmTests
     public async Task WorkUnitsCompleted_IsUpdatedWhenTimerPassesToNextPhase()
     {
         // Arrange
-        int secondsUntilNextPhase = _pomodoroTimerVm!.RemainingTime.Seconds;
+        int secondsUntilNextPhase = _pomodoroTimerVm!.RemainingTimeInCurrentPhase.Seconds;
 
         // Act
         _pomodoroTimerVm.StartTimerCommand.Execute(null);
@@ -331,7 +328,7 @@ internal class PomodoroTimerVmTests
         Assert.Multiple(() =>
         {
             Assert.That(info.CurrentPhase, Is.EqualTo(PomodoroPhase.Work));
-            Assert.That(info.ElapsedTime, Is.EqualTo(TimeSpan.Zero));
+            Assert.That(info.ElapsedTimeInCurrentPhase, Is.EqualTo(TimeSpan.Zero));
             Assert.That(info.IsRunning, Is.False);
             Assert.That(info.TotalWorkUnits, Is.EqualTo(TotalWorkUnits));
             Assert.That(info.WorkUnitsBeforeLongBreak, Is.EqualTo(WorkUnitsBeforeLongBreak));
@@ -351,11 +348,11 @@ internal class PomodoroTimerVmTests
         Assert.Multiple(() =>
         {
             Assert.That(info.CurrentPhase, Is.EqualTo(PomodoroPhase.Work));
-            Assert.That(info.ElapsedTime, Is.GreaterThan(TimeSpan.Zero));
+            Assert.That(info.ElapsedTimeInCurrentPhase, Is.GreaterThan(TimeSpan.Zero));
             Assert.That(info.IsRunning, Is.True);
-            Assert.That(info.RemainingTime, Is.LessThan(TimeSpan.FromSeconds(WorkDurationSeconds)));
-            Assert.That(info.TotalElapsedTime, Is.GreaterThan(TimeSpan.Zero));
-            Assert.That(info.TotalRemainingTime, Is.LessThan(info.TotalTimerDuration));
+            Assert.That(info.RemainingTimeInCurrentPhase, Is.LessThan(TimeSpan.FromSeconds(WorkDurationSeconds)));
+            Assert.That(info.ElapsedTimeInSession, Is.GreaterThan(TimeSpan.Zero));
+            Assert.That(info.RemainingTimeInSession, Is.LessThan(info.SessionDuration));
             Assert.That(info.WorkUnitsCompleted, Is.EqualTo(0));
         });
     }
@@ -373,11 +370,11 @@ internal class PomodoroTimerVmTests
         Assert.Multiple(() =>
         {
             Assert.That(info.CurrentPhase, Is.EqualTo(PomodoroPhase.Work));
-            Assert.That(info.ElapsedTime, Is.EqualTo(TimeSpan.Zero));
+            Assert.That(info.ElapsedTimeInCurrentPhase, Is.EqualTo(TimeSpan.Zero));
             Assert.That(info.IsRunning, Is.False);
-            Assert.That(info.RemainingTime, Is.EqualTo(TimeSpan.FromSeconds(WorkDurationSeconds)));
-            Assert.That(info.TotalElapsedTime, Is.EqualTo(TimeSpan.Zero));
-            Assert.That(info.TotalRemainingTime, Is.EqualTo(info.TotalTimerDuration));
+            Assert.That(info.RemainingTimeInCurrentPhase, Is.EqualTo(TimeSpan.FromSeconds(WorkDurationSeconds)));
+            Assert.That(info.ElapsedTimeInSession, Is.EqualTo(TimeSpan.Zero));
+            Assert.That(info.RemainingTimeInSession, Is.EqualTo(info.SessionDuration));
             Assert.That(info.WorkUnitsCompleted, Is.EqualTo(0));
         });
     }

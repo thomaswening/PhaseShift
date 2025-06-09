@@ -53,13 +53,6 @@ internal partial class NotificationService
 
     public void OnTimerCompleted(object? sender, EventArgs e)
     {
-        if (e is PomodoroTimerCompletedEventArgs pomodoroArgs
-            && pomodoroArgs.WasSkipped)
-        {
-            // Don't notify if the timer was skipped and it's not the end of the session
-            return;
-        }
-
         var message = CreateMessageFromEvent(sender, e); // If the event is not recognized, message will be null
 
         // Don't notify if the timer was skipped and it's not the end of the session
@@ -83,19 +76,19 @@ internal partial class NotificationService
         return e switch
         {
             StandardTimerCompletedEventArgs args => CreateStandardTimerMessage(args),
-            PomodoroTimerCompletedEventArgs args => CreatePomodoroMessage(args),
+            PomodoroPhaseCompletedEventArgs args => CreatePomodoroMessage(args),
             _ => null,
         };
     }
 
-    private static string? CreatePomodoroMessage(PomodoroTimerCompletedEventArgs args)
+    private static string? CreatePomodoroMessage(PomodoroPhaseCompletedEventArgs args)
     {
         if (args.TimerCompleted)
         {
             return "Pomodoro session completed!";
         }
 
-        var msg = args.NextPhase switch
+        var msg = args.NewPhase switch
         {
             PomodoroPhase.Work => "Time to get back to work!",
             PomodoroPhase.ShortBreak => $"Time for a short break!",

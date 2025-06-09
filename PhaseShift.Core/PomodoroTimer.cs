@@ -76,6 +76,12 @@ public class PomodoroTimer
 
     public void ResetCurrentPhase()
     {
+        if (IsCompleted)
+        {
+            _elapsedTimeInPreviousPhases -= _currentTimer.Duration;
+            --CompletedWorkUnits;
+        }
+
         _currentTimer.Reset();
     }
 

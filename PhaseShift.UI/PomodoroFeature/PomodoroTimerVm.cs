@@ -111,6 +111,7 @@ internal partial class PomodoroTimerVm : PageViewModel
     {
         WorkUnitsCompleted = _pomodoroTimer.CompletedWorkUnits;
         CurrentPhase = _pomodoroTimer.CurrentPhase;
+        IsRunning = _pomodoroTimer.IsRunning;
     }
 
     private void NotifyPomodoroPhaseCompleted()
@@ -125,6 +126,7 @@ internal partial class PomodoroTimerVm : PageViewModel
     {
         _pomodoroTimer.ResetCurrentPhase();
         IsRunning = _pomodoroTimer.IsRunning;
+        WorkUnitsCompleted = _pomodoroTimer.CompletedWorkUnits;
 
         UpdateOnTick();
     }
@@ -168,6 +170,7 @@ internal partial class PomodoroTimerVm : PageViewModel
         ElapsedTimeInSession = _pomodoroTimer.ElapsedTimeInSession;
         RemainingTimeInSession = _pomodoroTimer.RemainingTimeInSession;
         ProgressInCurrentPhase = _pomodoroTimer.ProgressInCurrentPhase;
+        IsRunning = _pomodoroTimer.IsRunning;
     }
 
     public void UpdateSettings(PomodoroSettings newSettings)

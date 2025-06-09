@@ -10,7 +10,22 @@
 	<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 	<ApplicationIcon>app_icon.ico</ApplicationIcon>
   </PropertyGroup>
+	
+	<PropertyGroup>
+		<AssemblyName>PhaseShift</AssemblyName>
+	</PropertyGroup>
 
+	<PropertyGroup>
+		<Product>PhaseShift</Product>
+		<Version>0.3.1</Version>
+		<FileVersion>0.3.1</FileVersion>
+		<InformationalVersion>0.3.1</InformationalVersion>
+		<Company>Thomas Wening</Company>
+		<Authors>Thomas Wening</Authors>
+		<Description>A stylish productivity timer app. Designed to keep your focus in phase.</Description>
+		<PackageLicenseExpression>GPL-3.0-only</PackageLicenseExpression>
+	</PropertyGroup>
+	
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
     <PackageReference Include="Material.Icons.WPF" Version="2.1.10" />

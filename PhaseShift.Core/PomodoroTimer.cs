@@ -16,7 +16,7 @@ public class PomodoroTimer
     public TimeSpan ElapsedTimeInSession => _elapsedTimeInPreviousPhases + ElapsedTimeInCurrentPhase;
     public TimeSpan RemainingTimeInCurrentPhase => _currentTimer.RemainingTime;
     public TimeSpan SessionDuration => GetSessionDuration();
-    public TimeSpan RemainingTimeInSession => SessionDuration - ElapsedTimeInSession;
+    public TimeSpan RemainingTimeInSession => GetRemainingTimeInSession();
     public double ProgressInCurrentPhase => _currentTimer.Progress;
     public PomodoroPhase CurrentPhase => _timers.FirstOrDefault(x => x.Value == _currentTimer).Key;
     public bool IsRunning => _currentTimer.IsRunning;
@@ -71,7 +71,7 @@ public class PomodoroTimer
         }
 
         _elapsedTimeInPreviousPhases = TimeSpan.Zero;
-        CompletedWorkUnits = 0;        
+        CompletedWorkUnits = 0;
     }
 
     public void ResetCurrentPhase()
@@ -97,37 +97,115 @@ public class PomodoroTimer
 
     public void UpdateSettings(PomodoroSettings newSettings)
     {
+        ValidateSettings(newSettings);
+        UpdateTotalWorkUnits(newSettings);
+        UpdatePhaseDurations(newSettings);
+        UpdateWorkUnitsBeforeLongBreak(newSettings);
+    }
 
+    private void UpdateWorkUnitsBeforeLongBreak(PomodoroSettings newSettings)
+    {
+        if (Settings.WorkUnitsBeforeLongBreak == newSettings.WorkUnitsBeforeLongBreak)
+        {
+            return;
+        }
+
+        Settings.WorkUnitsBeforeLongBreak = newSettings.WorkUnitsBeforeLongBreak;
+    }
+
+    private void UpdatePhaseDurations(PomodoroSettings newSettings)
+    {
+        foreach ((var phase, var timer) in _timers)
+        {
+            var newDuration = phase switch
+            {
+                PomodoroPhase.Work => TimeSpan.FromSeconds(newSettings.WorkDurationSeconds),
+                PomodoroPhase.ShortBreak => TimeSpan.FromSeconds(newSettings.ShortBreakDurationSeconds),
+                PomodoroPhase.LongBreak => TimeSpan.FromSeconds(newSettings.LongBreakDurationSeconds),
+                _ => throw new InvalidOperationException("Unknown Pomodoro phase")
+            };
+
+            UpdateTimerDuration(phase, timer, newDuration);
+        }
+
+        Settings.WorkDurationSeconds = newSettings.WorkDurationSeconds;
+        Settings.ShortBreakDurationSeconds = newSettings.ShortBreakDurationSeconds;
+        Settings.LongBreakDurationSeconds = newSettings.LongBreakDurationSeconds;
+    }
+
+    private void UpdateTimerDuration(PomodoroPhase phase, AsyncTimer timer, TimeSpan newDuration)
+    {
+        if (timer.Duration == newDuration)
+        {
+            return;
+        }
+
+        var wasRunning = timer.IsRunning;
+        if (timer.IsRunning)
+        {
+            timer.Stop();
+        }
+
+        timer.Duration = newDuration;
+
+        if (CurrentPhase == phase && newDuration <= timer.ElapsedTime)
+        {
+            // Complete the current phase and move to the next one
+            timer.Reset();
+            AdvancePhase(skipped: false, wasRunning);
+            return;
+        }
+
+        if (wasRunning)
+        {
+            timer.Start();
+        }
+    }
+
+    private void UpdateTotalWorkUnits(PomodoroSettings newSettings)
+    {
+        if (CurrentPhase is PomodoroPhase.Work && newSettings.TotalWorkUnits < CompletedWorkUnits + 1
+            || CurrentPhase is not PomodoroPhase.Work && newSettings.TotalWorkUnits <= CompletedWorkUnits)
+        {
+            _currentTimer.Reset();
+            // reset elapsed time in previous phases to zero,
+            // then use GetSessionDuration to get new session duration
+            // and then set elapsed time to that value to mark the session as completed
+
+            Settings.TotalWorkUnits = newSettings.TotalWorkUnits;
+            _elapsedTimeInPreviousPhases = GetSessionDuration();
+
+            SessionCompleted?.Invoke(this, EventArgs.Empty);
+            return;
+        }
+        else
+        {
+            Settings.TotalWorkUnits = newSettings.TotalWorkUnits;
+        }
     }
 
     private TimeSpan GetSessionDuration()
     {
-        int completedBreaks;
-        int completedLongBreaks;
-        if (CurrentPhase is PomodoroPhase.Work && !IsCompleted)
-        {
-            completedBreaks = CompletedWorkUnits;
-            completedLongBreaks = CompletedWorkUnits / Settings.WorkUnitsBeforeLongBreak;
-        }
-        else
-        {
-            completedBreaks = CompletedWorkUnits - 1;
-            completedLongBreaks = (CompletedWorkUnits - 1) / Settings.WorkUnitsBeforeLongBreak;
-        }
-
         var numberOfBreaks = Settings.TotalWorkUnits - 1;
-        var numberOfLongBreaks = (Settings.TotalWorkUnits - 1) / Settings.WorkUnitsBeforeLongBreak;
+        var numberOfLongBreaks = numberOfBreaks / Settings.WorkUnitsBeforeLongBreak;
         var numberOfShortBreaks = numberOfBreaks - numberOfLongBreaks;
 
-        var remainingWorkUnits = Settings.TotalWorkUnits - CompletedWorkUnits;
-        var remainingLongBreaks = numberOfLongBreaks - completedLongBreaks;
-        var remainingShortBreaks = numberOfShortBreaks - completedBreaks + completedLongBreaks;
+        var workSeconds = Settings.WorkDurationSeconds * Settings.TotalWorkUnits;
+        var longBreakSeconds = Settings.LongBreakDurationSeconds * numberOfLongBreaks;
+        var shortBreakSeconds = Settings.ShortBreakDurationSeconds * numberOfShortBreaks;
 
-        var remainingWorkDuration = TimeSpan.FromSeconds(remainingWorkUnits * Settings.WorkDurationSeconds);
-        var remainingLongBreakDuration = TimeSpan.FromSeconds(remainingLongBreaks * Settings.LongBreakDurationSeconds);
-        var remainingShortBreakDuration = TimeSpan.FromSeconds(remainingShortBreaks * Settings.ShortBreakDurationSeconds);
+        return TimeSpan.FromSeconds(workSeconds + longBreakSeconds + shortBreakSeconds);
+    }
 
-        return _elapsedTimeInPreviousPhases + remainingWorkDuration + remainingLongBreakDuration + remainingShortBreakDuration;
+    private TimeSpan GetRemainingTimeInSession()
+    {
+        var remainingSessionTime = SessionDuration - ElapsedTimeInSession;
+        if (remainingSessionTime < TimeSpan.Zero)
+        {
+            return TimeSpan.Zero;
+        }
+        
+        return SessionDuration - ElapsedTimeInSession;
     }
 
     private AsyncTimer GetNextPhaseTimer()

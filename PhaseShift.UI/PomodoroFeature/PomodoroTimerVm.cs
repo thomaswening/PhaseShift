@@ -162,8 +162,17 @@ internal partial class PomodoroTimerVm : PageViewModel
         IsRunning = _pomodoroTimer.IsRunning;
     }
 
-    public void UpdateSettings(PomodoroSettings settings)
+    public void UpdateSettings(PomodoroSettings newSettings)
     {
+        _pomodoroTimer.UpdateSettings(newSettings);
 
+        CurrentPhase = _pomodoroTimer.CurrentPhase;
+        WorkUnitsCompleted = _pomodoroTimer.CompletedWorkUnits;
+        SessionDuration = _pomodoroTimer.SessionDuration;
+        TotalWorkUnits = _pomodoroTimer.Settings.TotalWorkUnits;
+        WorkUnitsBeforeLongBreak = _pomodoroTimer.Settings.WorkUnitsBeforeLongBreak;
+        ShortBreakEqualsLongBreak = _pomodoroTimer.Settings.LongBreakDurationSeconds == _pomodoroTimer.Settings.ShortBreakDurationSeconds;
+
+        UpdateTimerState();
     }
 }

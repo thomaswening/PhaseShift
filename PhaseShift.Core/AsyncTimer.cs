@@ -51,6 +51,8 @@ public class AsyncTimer
                 return;
             }
 
+            // Link the external cancellation token with the internal CTS to ensure the timer
+            // respects both internal and external cancellation requests.
             var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(_cancellationTokenSource.Token, externalToken);
             _stopwatch.Start(linkedCts.Token);
             _timerTask = ExecuteTimerLoopAsync(linkedCts.Token);

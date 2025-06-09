@@ -94,11 +94,10 @@ internal class PomodoroTimerVmTests
     }
 
     [Test]
-    public async Task PhaseCompleted_IsInvoked_WhenPhaseIsSkipped()
+    public async Task PhaseCompleted_IsNotInvoked_WhenPhaseIsSkipped()
     {
         // Arrange
-        bool phaseCompletedInvoked = false;
-        bool phaseWasSkipped = false;
+        var phaseCompletedInvoked = false;
 
         _pomodoroTimerVm!.PomodoroPhaseCompleted += (_, args) =>
         {
@@ -108,13 +107,13 @@ internal class PomodoroTimerVmTests
         // Act
         _pomodoroTimerVm.StartTimerCommand.Execute(null);
         await Task.Delay(TestDelayMilliseconds);
+
         _pomodoroTimerVm.SkipToNextPhaseCommand.Execute(null);
 
         // Assert
         Assert.Multiple(() =>
         {
-            Assert.That(phaseCompletedInvoked, Is.True);
-            Assert.That(phaseWasSkipped, Is.True);
+            Assert.That(phaseCompletedInvoked, Is.False);
         });
     }
 

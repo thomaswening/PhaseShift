@@ -23,7 +23,7 @@ internal class MainWindowVmTests
     public void Constructor_ShouldSetCurrentViewModelToTimerCollectionVm()
     {
         // Assert
-        Assert.That(_mainWindowVm!.CurrentViewModel.GetType(), Is.EqualTo(typeof(TimerCollectionVm)));
+        Assert.That(_mainWindowVm!.CurrentViewModel.GetType(), Is.EqualTo(typeof(PomodoroNavigationVm)));
     }
 
     [Test]

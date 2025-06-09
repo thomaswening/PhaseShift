@@ -59,14 +59,15 @@ internal partial class PomodoroTimerVm : PageViewModel
         _dispatcher = dispatcher ?? new DispatcherWrapper(System.Windows.Application.Current.Dispatcher);
 
         settings ??= new PomodoroSettings();
-        _pomodoroTimer = new PomodoroTimer(_ => _dispatcher.Invoke(UpdateTimerState), settings);
+        _pomodoroTimer = new PomodoroTimer(_ => _dispatcher.Invoke(UpdateOnTick), settings);
         _pomodoroTimer.PhaseCompleted += OnPhaseCompleted;
-        _pomodoroTimer.SessionCompleted += OnSessionCompleted;
+        _pomodoroTimer.PhaseSkipped += OnPhaseSkipped;
+        _pomodoroTimer.SessionCompleted += OnPhaseCompleted; // Uses the same handler as phase completion
 
         CurrentPhase = _pomodoroTimer.CurrentPhase;
         WorkUnitsCompleted = _pomodoroTimer.CompletedWorkUnits;
         SessionDuration = _pomodoroTimer.SessionDuration;
-        UpdateTimerState();
+        UpdateOnTick();
 
         TotalWorkUnits = _pomodoroTimer.Settings.TotalWorkUnits;
         WorkUnitsBeforeLongBreak = _pomodoroTimer.Settings.WorkUnitsBeforeLongBreak;
@@ -93,15 +94,23 @@ internal partial class PomodoroTimerVm : PageViewModel
         PomodoroSettingsRequested?.Invoke(this, EventArgs.Empty);
     }
 
-    private void OnPhaseCompleted(object? sender, EventArgs e) => NotifyPomodoroPhaseCompleted();
-    private void OnSessionCompleted(object? sender, EventArgs e)
+    private void OnPhaseCompleted(object? sender, EventArgs e)
     {
-        ElapsedTimeInCurrentPhase = TimeSpan.FromSeconds(_pomodoroTimer.Settings.WorkDurationSeconds);
-        RemainingTimeInCurrentPhase = TimeSpan.Zero;
-        ElapsedTimeInSession = _pomodoroTimer.SessionDuration;
-        RemainingTimeInSession = TimeSpan.Zero;
-
+        UpdateOnPhaseChange();
+        UpdateOnTick();
         NotifyPomodoroPhaseCompleted();
+    }
+
+    private void OnPhaseSkipped(object? sender, EventArgs e)
+    {
+        UpdateOnTick();
+        UpdateOnPhaseChange();
+    }
+
+    private void UpdateOnPhaseChange()
+    {
+        WorkUnitsCompleted = _pomodoroTimer.CompletedWorkUnits;
+        CurrentPhase = _pomodoroTimer.CurrentPhase;
     }
 
     private void NotifyPomodoroPhaseCompleted()
@@ -117,7 +126,7 @@ internal partial class PomodoroTimerVm : PageViewModel
         _pomodoroTimer.ResetCurrentPhase();
         IsRunning = _pomodoroTimer.IsRunning;
 
-        UpdateTimerState();
+        UpdateOnTick();
     }
 
     [RelayCommand]
@@ -128,7 +137,7 @@ internal partial class PomodoroTimerVm : PageViewModel
         CurrentPhase = _pomodoroTimer.CurrentPhase;
         IsRunning = _pomodoroTimer.IsRunning;
 
-        UpdateTimerState();
+        UpdateOnTick();
     }
 
     [RelayCommand(CanExecute = nameof(CanSkipToNextPhase))]
@@ -138,7 +147,7 @@ internal partial class PomodoroTimerVm : PageViewModel
         WorkUnitsCompleted = _pomodoroTimer.CompletedWorkUnits;
         CurrentPhase = _pomodoroTimer.CurrentPhase;
 
-        UpdateTimerState();
+        UpdateOnTick();
     }
 
     private bool CanSkipToNextPhase() => _pomodoroTimer.CompletedWorkUnits < _pomodoroTimer.Settings.TotalWorkUnits;
@@ -152,14 +161,13 @@ internal partial class PomodoroTimerVm : PageViewModel
         WorkUnitsCompleted = _pomodoroTimer.CompletedWorkUnits;
     }
 
-    private void UpdateTimerState()
+    private void UpdateOnTick()
     {
         ElapsedTimeInCurrentPhase = _pomodoroTimer.ElapsedTimeInCurrentPhase;
         RemainingTimeInCurrentPhase = _pomodoroTimer.RemainingTimeInCurrentPhase;
         ElapsedTimeInSession = _pomodoroTimer.ElapsedTimeInSession;
         RemainingTimeInSession = _pomodoroTimer.RemainingTimeInSession;
         ProgressInCurrentPhase = _pomodoroTimer.ProgressInCurrentPhase;
-        IsRunning = _pomodoroTimer.IsRunning;
     }
 
     public void UpdateSettings(PomodoroSettings newSettings)
@@ -173,6 +181,6 @@ internal partial class PomodoroTimerVm : PageViewModel
         WorkUnitsBeforeLongBreak = _pomodoroTimer.Settings.WorkUnitsBeforeLongBreak;
         ShortBreakEqualsLongBreak = _pomodoroTimer.Settings.LongBreakDurationSeconds == _pomodoroTimer.Settings.ShortBreakDurationSeconds;
 
-        UpdateTimerState();
+        UpdateOnTick();
     }
 }

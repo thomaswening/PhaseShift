@@ -51,13 +51,6 @@ public class AsyncStopwatch(Action<TimeSpan> tickHandler, int intervalMillisecon
 
         lock (_stateLock)
         {
-            if (!IsRunning)
-            {
-                return;
-            }
-
-            _stopwatch.Stop();
-
             oldTickLoopTask = _tickLoopTask;
             oldCts = _cancellationTokenSource;
 
@@ -67,6 +60,11 @@ public class AsyncStopwatch(Action<TimeSpan> tickHandler, int intervalMillisecon
         }
 
         CancelAndCleanupOldTickLoop(oldTickLoopTask, oldCts, externalToken);
+
+        lock (_stateLock)
+        {
+            _stopwatch.Stop();
+        }
     }
 
     /// <summary>
@@ -79,15 +77,6 @@ public class AsyncStopwatch(Action<TimeSpan> tickHandler, int intervalMillisecon
 
         lock (_stateLock)
         {
-            _stopwatch.Reset();
-            _tickHandler(_stopwatch.Elapsed);
-
-            if (!IsRunning)
-            {
-                // Nothing to cancel
-                _tickLoopTask = null;
-                return;
-            }
 
             oldCts = _cancellationTokenSource;
             oldTickLoopTask = _tickLoopTask;
@@ -98,6 +87,12 @@ public class AsyncStopwatch(Action<TimeSpan> tickHandler, int intervalMillisecon
         }
 
         CancelAndCleanupOldTickLoop(oldTickLoopTask, oldCts, externalToken);
+
+        lock (_stateLock)
+        {
+            _stopwatch.Reset();
+            _tickHandler(_stopwatch.Elapsed);
+        }
     }
 
     private static void CancelAndCleanupOldTickLoop(Task? oldTickLoopTask, CancellationTokenSource? oldCts, CancellationToken externalToken)
@@ -125,7 +120,7 @@ public class AsyncStopwatch(Action<TimeSpan> tickHandler, int intervalMillisecon
 
     private async Task ExecuteTickLoopAsync(CancellationToken cancelToken)
     {
-        while (true)
+        while (!cancelToken.IsCancellationRequested)
         {
             try
             {

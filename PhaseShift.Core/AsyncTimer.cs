@@ -64,15 +64,6 @@ public class AsyncTimer
 
         lock (_stateLock)
         {
-            if (!IsRunning)
-            {
-                // Nothing to cancel
-                _timerTask = null;
-                return;
-            }
-
-            _stopwatch.Stop(externalToken);
-
             oldCts = _cancellationTokenSource;
             oldTimerTask = _timerTask;
 
@@ -80,6 +71,11 @@ public class AsyncTimer
         }
 
         CancelAndCleanupOldTimer(oldCts, oldTimerTask, externalToken);
+
+        lock (_stateLock)
+        {
+            _stopwatch.Stop(externalToken);
+        }
     }
 
     public void Reset(CancellationToken externalToken = default)
@@ -88,15 +84,7 @@ public class AsyncTimer
         Task? oldTimerTask = null;
 
         lock (_stateLock)
-        {
-            _stopwatch.Reset(externalToken);
-
-            if (!IsRunning)
-            {
-                // Nothing to cancel
-                _timerTask = null;
-                return;
-            }
+        {            
 
             oldCts = _cancellationTokenSource;
             oldTimerTask = _timerTask;
@@ -106,6 +94,11 @@ public class AsyncTimer
         }
 
         CancelAndCleanupOldTimer(oldCts, oldTimerTask, externalToken);
+
+        lock (_stateLock)
+        {
+            _stopwatch.Reset(externalToken);
+        }
     }
 
     private static void CancelAndCleanupOldTimer(CancellationTokenSource? oldCts, Task? oldTimerTask, CancellationToken externalToken)
@@ -154,7 +147,7 @@ public class AsyncTimer
 
     private async Task ExecuteTimerLoopAsync(CancellationToken cancelToken)
     {
-        while (_stopwatch.IsRunning && _stopwatch.ElapsedTime <= Duration)
+        while (!cancelToken.IsCancellationRequested && _stopwatch.IsRunning && _stopwatch.ElapsedTime <= Duration)
         {
             try
             {

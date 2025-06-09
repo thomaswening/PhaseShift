@@ -37,7 +37,7 @@ internal class AsyncStopwatchTests
 
         // Act
         _asyncStopwatch.Start();
-        await Task.Delay(TestDelayMilliseconds);
+        await Task.Delay(100 * DefaultIntervalMilliseconds);
 
         // Assert
         Assert.Multiple(() =>

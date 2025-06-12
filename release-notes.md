@@ -29,7 +29,7 @@ Here's the updated **How to Use** section with a reassuring link to Microsoft's 
 
 Just download the executable and run it: No installation required! The `.exe` file includes the .NET runtime and all necessary DLLs, so it works out of the box.
 
-More info on how to use each feature can be found in the 👉 [**Quick Start Guide**](https://github.com/thomaswening/PhaseShift/blob/main/quickstart.md).
+More info on how to use each feature can be found in the 👉 [**Quick Start Guide**](https://github.com/thomaswening/PhaseShift/blob/main/quickstart.md) or the 👉 [**Extensive User Guide**](https://github.com/thomaswening/PhaseShift/blob/main/extensive-user-guide.md).
 
 > ⚠️ **Heads-up:**
 > Since this app is a personal project and not code-signed (signing certificates are expensive and typically used for commercial products), Windows SmartScreen or your antivirus software might show a warning the first time you launch it.

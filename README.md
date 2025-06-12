@@ -5,7 +5,18 @@
 
 A stylish productivity timer app, with Pomodoro, stopwatch, and custom timer modes. Designed to keep your focus in phase.<br>
 
-👉 [**Latest Release**](https://github.com/thomaswening/PhaseShift/releases/latest) 👉 [**All Release Notes**](https://github.com/thomaswening/PhaseShift/blob/main/release-notes.md)
+👉 [**Latest Release**](https://github.com/thomaswening/PhaseShift/releases/latest) 👉 [**All Release Notes**](./release-notes.md)
+
+## 📑 Table of Contents
+
+- [What is the Pomodoro Technique?](#-what-is-the-pomodoro-technique)
+- [Features](#features)
+- [Screenshots](#screenshots)
+- [Planned Features](#planned-features)
+- [Dependencies](#dependencies)
+- [How to Build](#how-to-build)
+- [Solution Structure](#solution-structure)
+- [License](#license)
 
 ## 🍅 What is the Pomodoro Technique?
 
@@ -23,9 +34,9 @@ It’s a surprisingly effective way to avoid burnout, reduce procrastination, an
 
 - ✅ **Pomodoro Timer** – Work/break intervals based on the classic Pomodoro technique.
 - ✅ **Stopwatch Mode** – Start, stop, and reset your work sessions with ease.
-- ✅ **Custom Timers** – Set countdowns for arbitrary tasks and activities.
+- ✅ **Custom Timers** – Set countdowns for arbitrary tasks and activities. 
 
-There is also the [👉 Quick Start Guide](https://github.com/thomaswening/PhaseShift/blob/main/quickstart.md) explaining how to use each of these features.
+There are also the 👉 [Quick Start Guide](./quickstart.md) and the 👉 [Extended User Guide](./extended-user-guide.md) explaining how to use each of these features.
 
 ## Screenshots
 

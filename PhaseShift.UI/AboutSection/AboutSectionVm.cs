@@ -1,5 +1,6 @@
-﻿
+﻿using System.Diagnostics;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 
 namespace PhaseShift.UI.AboutSection;
 internal partial class AboutSectionVm : ObservableObject
@@ -7,7 +8,7 @@ internal partial class AboutSectionVm : ObservableObject
     public static string AppName => AppConstants.AppName;
     public static string AppVersion => AppConstants.AppVersion;
     public static string AppDescription 
-        => "A stylish productivity timer app for developers. Designed to keep your focus in phase."; // must also be changed in csproj
+        => "A stylish productivity timer app. Designed to keep your focus in phase."; // must also be changed in csproj
     public static string Author => "Thomas Wening"; // must also be changed in csproj
     public static string AuthorEmail => "thomaswening94@gmail.com";
     public static string AuthorEmailUri => $"mailto:{AuthorEmail}";
@@ -26,4 +27,27 @@ internal partial class AboutSectionVm : ObservableObject
         "Material.Icons.WPF v2.1.10",
         "MaterialDesignThemes v5.1.0"
     ];
+
+    [RelayCommand]
+    private static void OpenAuthorEmail()
+    {
+        LaunchLink(AuthorEmailUri);
+    }
+
+    [RelayCommand]
+    private static void OpenAuthorGitHub()
+    {
+        LaunchLink(AuthorWebsite);
+    }
+
+    [RelayCommand]
+    private static void OpenAuthorLinkedInProfile()
+    {
+        LaunchLink(AuthorLinkedIn);
+    }
+
+    private static void LaunchLink(string uri)
+    {
+        Process.Start(new ProcessStartInfo(uri) { UseShellExecute = true });
+    }
 }

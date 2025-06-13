@@ -3,26 +3,41 @@
   <img src="./assets/app_banner.svg" alt="PhaseShift App Banner" width=70%>
 </picture><br><br>
 
-A stylish productivity timer app for developers, with Pomodoro, stopwatch, and custom timer modes. Designed to keep your focus in phase.<br><br>
+A stylish productivity timer app, with Pomodoro, stopwatch, and custom timer modes. Designed to keep your focus in phase.<br>
+
+👉 [**Latest Release**](https://github.com/thomaswening/PhaseShift/releases/latest) 👉 [**All Release Notes**](./release-notes.md)
+
+## 📑 Table of Contents
+
+- [What is the Pomodoro Technique?](#-what-is-the-pomodoro-technique)
+- [Features](#features)
+- [Screenshots](#screenshots)
+- [Planned Features](#planned-features)
+- [Dependencies](#dependencies)
+- [How to Build](#how-to-build)
+- [Solution Structure](#solution-structure)
+- [License](#license)
 
 ## 🍅 What is the Pomodoro Technique?
 
 The **Pomodoro Technique** is a simple time management method:
-- Work in focused intervals (typically **25 minutes**) called _Pomodoros_
-- Take **short breaks** between intervals
-- After a few Pomodoros, take a **longer break**
+- Work in focused intervals (typically **25 minutes**) called _Pomodoros_.
+- Take **short breaks** between intervals.
+- After a few Pomodoros, take a **longer break**.
 
-It’s a surprisingly effective way to avoid burnout, reduce procrastination, and maintain momentum — especially for deep, uninterrupted work.
+It’s a surprisingly effective way to avoid burnout, reduce procrastination, and maintain momentum, especially for deep, uninterrupted work.
 
 > 🧐 **Why is it called _Pomodoro_?**  
-> The method was developed by Francesco Cirillo in the late 1980s, who used a **tomato-shaped kitchen timer** while studying. _Pomodoro_ is the Italian word for **tomato** — and the name stuck.
+> The method was developed by Francesco Cirillo in the late 1980s, who used a **tomato-shaped kitchen timer** while studying. _Pomodoro_ is the Italian word for **tomato**, and the name stuck.
 
 ## Features
 
 - ✅ **Pomodoro Timer** – Work/break intervals based on the classic Pomodoro technique.
 - ✅ **Stopwatch Mode** – Start, stop, and reset your work sessions with ease.
-- ✅ **Custom Timers** – Set countdowns for arbitrary tasks and activities.
-  
+- ✅ **Custom Timers** – Set countdowns for arbitrary tasks and activities. 
+
+There are also the 👉 [Quick Start Guide](./quickstart.md) and the 👉 [Extended User Guide](./extended-user-guide.md) explaining how to use each of these features.
+
 ## Screenshots
 
 <table>

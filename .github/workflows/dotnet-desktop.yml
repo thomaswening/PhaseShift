@@ -1,0 +1,63 @@
+name: PhaseShift CI - Build and Test
+
+on:
+  push:
+    branches: [ '**' ]
+  pull_request:
+    branches: [ '**' ]
+  workflow_dispatch:
+
+env:
+  DOTNET_VERSION: '8.0.x'
+  SOLUTION_FILE: 'PhaseShift.sln'
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    strategy:
+      matrix:
+        configuration: [Debug, Release]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup .NET SDK
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: Restore dependencies
+      run: dotnet restore ${{ env.SOLUTION_FILE }}
+
+    - name: Build solution and capture logs
+      run: dotnet build ${{ env.SOLUTION_FILE }} --no-restore --configuration ${{ matrix.configuration }} --verbosity normal > build.log
+
+    - name: Run unit tests and capture logs
+      run: dotnet test ${{ env.SOLUTION_FILE }} --no-build --configuration ${{ matrix.configuration }} --verbosity normal --logger "trx;LogFileName=test-results.trx" > test.log
+
+    - name: Upload build log
+      uses: actions/upload-artifact@v4
+      with:
+        name: Build-Log-${{ matrix.configuration }}
+        path: build.log
+
+    - name: Upload test log
+      uses: actions/upload-artifact@v4
+      with:
+        name: Test-Log-${{ matrix.configuration }}
+        path: test.log
+
+    - name: Upload test results
+      uses: actions/upload-artifact@v4
+      with:
+        name: Test-Results-${{ matrix.configuration }}
+        path: '**/TestResults/*.trx'
+
+    - name: Upload full build output (optional)
+      uses: actions/upload-artifact@v4
+      with:
+        name: Build-Output-${{ matrix.configuration }}
+        path: ./PhaseShift.UI/bin/${{ matrix.configuration }}/net8.0/
+        if-no-files-found: ignore

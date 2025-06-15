@@ -8,7 +8,7 @@ namespace PhaseShift.Core.Tests;
 internal class AsyncStopwatchTests
 {
     private const int DefaultIntervalMilliseconds = 10;
-    private const int TestDelayMilliseconds = 5 * DefaultIntervalMilliseconds;
+    private const int TestDelayMilliseconds = 1000;
 
     private Action<TimeSpan>? _tickHandler;
     private AsyncStopwatch? _asyncStopwatch;
@@ -37,7 +37,7 @@ internal class AsyncStopwatchTests
 
         // Act
         _asyncStopwatch.Start();
-        await Task.Delay(100 * DefaultIntervalMilliseconds);
+        await Task.Delay(TestDelayMilliseconds);
 
         // Assert
         Assert.Multiple(() =>

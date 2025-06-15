@@ -32,6 +32,9 @@ jobs:
     - name: Create artifact directories
       run: |
         New-Item -ItemType Directory -Path artifacts/${{ matrix.configuration }}/build-output -Force
+      
+    - name: Restore dependencies
+      run: dotnet restore ${{ env.SOLUTION_FILE }}
 
     - name: Build solution and capture logs
       run: dotnet build ${{ env.SOLUTION_FILE }} --no-restore --configuration ${{ matrix.configuration }} --verbosity normal | Tee-Object -FilePath artifacts/${{ matrix.configuration }}/build.log

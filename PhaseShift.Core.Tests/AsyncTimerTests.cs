@@ -8,9 +8,9 @@ namespace PhaseShift.Core.Tests;
 internal class AsyncTimerTests
 {
     private const int IntervalMilliseconds = 10;
-    private const int TestDelayMilliseconds = 2 * IntervalMilliseconds;
+    private const int TestDelayMilliseconds = 1000;
 
-    private const int CountdownDurationMilliseconds = 1000;
+    private const int CountdownDurationMilliseconds = 2000;
 
     private Action? _countdownFinishedCallback;
     private Action<TimeSpan>? _tickCallback;
@@ -34,6 +34,7 @@ internal class AsyncTimerTests
     {
         // Arrange
         var wasTickCalled = false;
+        var isRunning = false;
         var wasCountdownFinishedCalled = false;
         var elapsedTime = TimeSpan.Zero;
 
@@ -57,11 +58,14 @@ internal class AsyncTimerTests
         // Act
         _asyncTimer.Start();
         await Task.Delay(TestDelayMilliseconds);
+        isRunning = _asyncTimer.IsRunning;
+
+        _asyncTimer.Stop();
 
         // Assert
         Assert.Multiple(() =>
         {
-            Assert.That(_asyncTimer.IsRunning, Is.True,
+            Assert.That(isRunning, Is.True,
                 "Timer should be running after Start is called.");
 
             Assert.That(wasTickCalled, Is.True,

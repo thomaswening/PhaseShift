@@ -16,6 +16,7 @@ jobs:
     runs-on: windows-latest
 
     strategy:
+      fail-fast: true
       matrix:
         configuration: [Debug, Release]
 
@@ -28,41 +29,26 @@ jobs:
       with:
         dotnet-version: ${{ env.DOTNET_VERSION }}
 
-    - name: Restore dependencies
-      run: dotnet restore ${{ env.SOLUTION_FILE }}
+    - name: Create artifact directories
+      run: |
+        New-Item -ItemType Directory -Path artifacts/${{ matrix.configuration }}/build-output -Force
 
     - name: Build solution and capture logs
-      run: dotnet build ${{ env.SOLUTION_FILE }} --no-restore --configuration ${{ matrix.configuration }} --verbosity normal | tee build.log
+      run: dotnet build ${{ env.SOLUTION_FILE }} --no-restore --configuration ${{ matrix.configuration }} --verbosity normal | Tee-Object -FilePath artifacts/${{ matrix.configuration }}/build.log
 
     - name: Run unit tests and capture logs
-      run: dotnet test ${{ env.SOLUTION_FILE }} --no-build --configuration ${{ matrix.configuration }} --verbosity normal --logger "trx;LogFileName=test-results.trx" | tee test.log
+      run: dotnet test ${{ env.SOLUTION_FILE }} --no-build --configuration ${{ matrix.configuration }} --verbosity normal --logger "trx;LogFileName=test-results.trx" | Tee-Object -FilePath artifacts/${{ matrix.configuration }}/test.log
 
-    - name: Upload build log
-      if: always()
+    - name: Collect test results
+      run: |
+        Copy-Item -Path **/TestResults/*.trx -Destination artifacts/${{ matrix.configuration }}/test-results.trx -Force
+
+    - name: Collect build output
+      run: |
+        Copy-Item -Path "PhaseShift.UI\bin\${{ matrix.configuration }}\net8.0-windows*" -Destination "artifacts/${{ matrix.configuration }}/build-output" -Recurse -Force
+
+    - name: Upload bundled artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: Build-Log-${{ matrix.configuration }}
-        path: build.log
-
-    - name: Upload test log
-      if: always()
-      uses: actions/upload-artifact@v4
-      with:
-        name: Test-Log-${{ matrix.configuration }}
-        path: test.log
-
-    - name: Upload test results
-      if: always()
-      uses: actions/upload-artifact@v4
-      with:
-        name: Test-Results-${{ matrix.configuration }}
-        path: '**/TestResults/*.trx'
-
-    - name: Upload full build output (optional)
-      if: always()
-      uses: actions/upload-artifact@v4
-      with:
-        name: Build-Output-${{ matrix.configuration }}
-        path: ./PhaseShift.UI/bin/${{ matrix.configuration }}/net8.0-windows*/
-        if-no-files-found: ignore
-
+        name: ${{ matrix.configuration }}
+        path: artifacts/${{ matrix.configuration }}

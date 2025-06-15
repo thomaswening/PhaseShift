@@ -24,6 +24,7 @@ internal class AsyncStopwatchTests
     public async Task Start_ShouldStartTheStopwatch()
     {
         // Arrange
+        var isRunning = false;
         var wasTickHandlerCalled = false;
         var elapsedTime = TimeSpan.Zero;
 
@@ -39,10 +40,13 @@ internal class AsyncStopwatchTests
         _asyncStopwatch.Start();
         await Task.Delay(TestDelayMilliseconds);
 
+        isRunning = _asyncStopwatch.IsRunning;
+        _asyncStopwatch.Stop();
+
         // Assert
         Assert.Multiple(() =>
         {
-            Assert.That(_asyncStopwatch.IsRunning, Is.True,
+            Assert.That(isRunning, Is.True,
                 "Stopwatch should be running after Start is called.");
 
             Assert.That(wasTickHandlerCalled, Is.True,
